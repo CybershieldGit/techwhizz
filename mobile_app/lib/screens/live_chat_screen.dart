@@ -90,6 +90,32 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
     if (text.isEmpty) return;
 
     final provider = context.read<AgentProvider>();
+
+    // Support /note slash command for lightning-fast private case notes
+    if (text.toLowerCase().startsWith('/note ')) {
+      final noteContent = text.substring(6).trim();
+      if (noteContent.isNotEmpty) {
+        provider.addNote(noteContent);
+        if (textOverride == null) {
+          _inputController.clear();
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.sticky_note_2, color: Colors.white, size: 16),
+                SizedBox(width: 8),
+                Text('Private note logged to case file'),
+              ],
+            ),
+            backgroundColor: AppColors.amber,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
     provider.sendMessage(text);
 
     if (textOverride == null) {
@@ -330,10 +356,42 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
           ),
         ),
         actions: [
-          // Customer Profile Dossier button
+          // Dedicated Notes Pill with live counter badge
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            child: InkWell(
+              onTap: () => CustomerDossierSheet.show(context, chat),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.amber.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.sticky_note_2_outlined, size: 15, color: AppColors.amber),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Notes${chat.notes.isNotEmpty ? ' (${chat.notes.length})' : ''}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.amber,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Customer Profile Info button
           IconButton(
-            icon: const Icon(Icons.info_outline, color: AppColors.textSecondary),
-            tooltip: 'Customer Dossier & Notes',
+            icon: const Icon(Icons.info_outline, color: AppColors.textSecondary, size: 20),
+            tooltip: 'Customer Dossier',
             onPressed: () => CustomerDossierSheet.show(context, chat),
           ),
 
@@ -414,6 +472,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
 
             // Canned Macro Bar
             CannedMacroBar(
+              customerName: customer.name,
               onSelectMacro: (macroText) => _sendMessage(macroText),
             ),
 
@@ -439,12 +498,12 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                         onSubmitted: (_) => _sendMessage(),
                         maxLines: null,
                         style: const TextStyle(fontSize: 14),
-                        decoration: const InputDecoration(
-                          hintText: 'Type response to customer...',
-                          hintStyle: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                        decoration: InputDecoration(
+                          hintText: 'Reply to ${customer.name} (or /note)...',
+                          hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
                           border: InputBorder.none,
                           contentPadding:
-                              EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         ),
                       ),
                     ),

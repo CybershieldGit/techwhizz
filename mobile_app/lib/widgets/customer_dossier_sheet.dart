@@ -247,8 +247,8 @@ class _CustomerDossierSheetState extends State<CustomerDossierSheet> {
                   )
                 else
                   ...notes.map((n) {
-                    final agentName = n['agentName'] ?? 'Agent';
-                    final noteText = n['note'] ?? '';
+                    final agentName = n['author'] ?? n['agentName'] ?? 'Agent';
+                    final noteText = n['text'] ?? n['note'] ?? '';
                     final time = n['timestamp']?.toString().split('T').first ?? '';
 
                     return Container(

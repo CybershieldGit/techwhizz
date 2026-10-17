@@ -51,6 +51,8 @@ class CustomerInfo {
   final String email;
   final String? phone;
   final String department;
+  final String? tier;
+  final String? ip;
 
   CustomerInfo({
     required this.id,
@@ -58,6 +60,8 @@ class CustomerInfo {
     required this.email,
     this.phone,
     required this.department,
+    this.tier,
+    this.ip,
   });
 
   factory CustomerInfo.fromJson(Map<String, dynamic> json) {
@@ -67,6 +71,8 @@ class CustomerInfo {
       email: json['email'] ?? '',
       phone: json['phone'],
       department: json['department'] ?? 'General',
+      tier: json['tier']?.toString(),
+      ip: json['ip']?.toString(),
     );
   }
 }

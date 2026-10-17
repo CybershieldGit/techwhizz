@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppConstants {
   // ── Server URL ────────────────────────────────────────────
   static const String serverUrlKey = 'bpo_server_url';
-  static String serverUrl = 'http://localhost:3001';
+  static String serverUrl = 'https://techwhizz.onrender.com';
 
   static Future<void> loadServerUrl() async {
     try {
@@ -47,6 +47,9 @@ class AppConstants {
   static const String evtAddNote = 'add_agent_note';
   static const String evtEndChat = 'end_chat';
 
+  static const String evtGetCannedMacros = 'get_canned_macros';
+  static const String evtAgentGetHistory = 'agent_get_history';
+
   // ── Socket Events — Received from server ──────────────────
   static const String evtAgentRegistered = 'agent_registered';
   static const String evtAgentsUpdate = 'agents_update';
@@ -61,6 +64,8 @@ class AppConstants {
   static const String evtChatEnded = 'chat_ended';
   static const String evtNotesUpdated = 'chat_notes_updated';
   static const String evtSessionTerminated = 'agent_session_terminated';
+  static const String evtCannedResponsesUpdate = 'canned_responses_update';
+  static const String evtAgentHistoryData = 'agent_history_data';
 
   // ── Canned Macros ─────────────────────────────────────────
   static const List<Map<String, String>> cannedMacros = [

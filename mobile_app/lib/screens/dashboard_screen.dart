@@ -444,6 +444,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           IconButton(
+            icon: const Icon(Icons.history_rounded, color: AppColors.blue, size: 22),
+            tooltip: 'Ticket History & CSAT',
+            onPressed: () => context.push('/history'),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout_rounded, color: AppColors.textSecondary, size: 20),
             tooltip: 'Sign Out',
             onPressed: () async {
@@ -648,6 +653,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: AppColors.emerald,
                     ),
                   ],
+                ),
+
+                const SizedBox(height: 14),
+
+                // Past Resolved Tickets & CSAT Navigation Card
+                InkWell(
+                  onTap: () => context.push('/history'),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ticket History & CSAT Ratings',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Review past resolved sessions, notes, & customer stars',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary, size: 20),
+                      ],
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 20),

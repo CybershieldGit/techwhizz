@@ -151,6 +151,16 @@ class SocketService {
     });
   }
 
+  static void getCannedMacros() {
+    emit(AppConstants.evtGetCannedMacros);
+  }
+
+  static void getAgentHistory(String agentId) {
+    emit(AppConstants.evtAgentGetHistory, {
+      'agentId': agentId,
+    });
+  }
+
   static void endChat({
     required String chatId,
     required String resolvedBy,

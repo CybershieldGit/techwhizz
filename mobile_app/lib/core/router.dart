@@ -11,6 +11,7 @@ import '../screens/splash_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/live_chat_screen.dart';
+import '../screens/ticket_history_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -47,6 +48,10 @@ GoRouter buildRouter([AgentProvider? agentProvider]) {
       GoRoute(
         path: '/dashboard',
         builder: (_, __) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/history',
+        builder: (_, __) => const TicketHistoryScreen(),
       ),
       GoRoute(
         path: '/chat/:chatId',

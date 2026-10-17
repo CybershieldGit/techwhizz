@@ -114,6 +114,52 @@ app.prepare().then(async () => {
     socket.emit("agents_update", Object.values(liveAgents));
     socket.emit("metrics_update", getSystemMetrics());
 
+    CannedMacro.find().then(macros => {
+      socket.emit("canned_responses_update", macros.map(c => ({ id: c._id.toString(), title: c.title, text: c.text })));
+    }).catch(() => {});
+
+    socket.on("get_canned_macros", async () => {
+      try {
+        const macros = await CannedMacro.find();
+        socket.emit("canned_responses_update", macros.map(c => ({ id: c._id.toString(), title: c.title, text: c.text })));
+      } catch (e) {
+        console.error("Error fetching canned macros:", e.message);
+      }
+    });
+
+    socket.on("agent_get_history", async ({ agentId }) => {
+      try {
+        const history = await Chat.find({
+          status: "resolved",
+          $or: [
+            { "assignedAgent.id": agentId },
+            { "assignedAgent.email": agentId }
+          ]
+        }).sort({ resolvedAt: -1, createdAt: -1 }).limit(50);
+
+        socket.emit("agent_history_data", {
+          agentId,
+          chats: history.map(c => ({
+            id: c.chatId || c.id,
+            customer: c.customer,
+            subject: c.subject,
+            initialMessage: c.initialMessage,
+            status: c.status,
+            assignedAgent: c.assignedAgent,
+            messages: c.messages,
+            notes: c.notes,
+            summary: c.summary,
+            rating: c.rating,
+            createdAt: c.createdAt ? c.createdAt.toISOString() : null,
+            acceptedAt: c.acceptedAt ? c.acceptedAt.toISOString() : null,
+            resolvedAt: c.resolvedAt ? c.resolvedAt.toISOString() : null,
+          }))
+        });
+      } catch (e) {
+        console.error("Error fetching agent history:", e.message);
+      }
+    });
+
     // ------------------------------------
     // AGENT REGISTRATION & PRESENCE
     // ------------------------------------

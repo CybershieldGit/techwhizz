@@ -7,6 +7,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/agent_model.dart';
 import '../models/chat_model.dart';
@@ -40,6 +41,13 @@ class AgentProvider extends ChangeNotifier {
     'onlineAgents': 0,
   };
 
+  // Dynamic canned responses from backend
+  List<Map<String, String>> _cannedMacros = List.from(AppConstants.cannedMacros);
+
+  // Past resolved tickets history
+  List<ChatModel> _resolvedHistory = [];
+  bool _isLoadingHistory = false;
+
   // Socket connection state
   bool _isSocketConnected = false;
 
@@ -58,6 +66,9 @@ class AgentProvider extends ChangeNotifier {
       List.unmodifiable(_incomingBroadcasts);
   List<AgentModel> get rosterAgents => List.unmodifiable(_rosterAgents);
   Map<String, dynamic> get metrics => _metrics;
+  List<Map<String, String>> get cannedMacros => List.unmodifiable(_cannedMacros);
+  List<ChatModel> get resolvedHistory => List.unmodifiable(_resolvedHistory);
+  bool get isLoadingHistory => _isLoadingHistory;
   bool get isSocketConnected => _isSocketConnected;
 
   // ── Initialization / Session Check ────────────────────────
@@ -127,6 +138,8 @@ class AgentProvider extends ChangeNotifier {
       if (_currentAgent != null) {
         SocketService.registerAgent(_currentAgent!.id, status: _agentStatus);
         _registerFcmWithServer();
+        SocketService.getCannedMacros();
+        SocketService.getAgentHistory(_currentAgent!.id);
       }
     }
 
@@ -154,6 +167,8 @@ class AgentProvider extends ChangeNotifier {
     SocketService.off(AppConstants.evtAgentsUpdate);
     SocketService.off(AppConstants.evtMetricsUpdate);
     SocketService.off(AppConstants.evtSessionTerminated);
+    SocketService.off(AppConstants.evtCannedResponsesUpdate);
+    SocketService.off(AppConstants.evtAgentHistoryData);
 
     // 1. Agent Registered confirmation
     SocketService.on(AppConstants.evtAgentRegistered, (data) {
@@ -179,6 +194,10 @@ class AgentProvider extends ChangeNotifier {
               b['chatId']?.toString() == chatId || b['id']?.toString() == chatId);
           if (!exists) {
             _incomingBroadcasts.insert(0, broadcast);
+            try {
+              HapticFeedback.heavyImpact();
+              SystemSound.play(SystemSoundType.alert);
+            } catch (_) {}
             notifyListeners();
           }
         }
@@ -326,6 +345,38 @@ class AgentProvider extends ChangeNotifier {
     SocketService.on(AppConstants.evtSessionTerminated, (data) {
       logout();
     });
+
+    // 13. Dynamic Canned Macros Update
+    SocketService.on(AppConstants.evtCannedResponsesUpdate, (data) {
+      if (data is List) {
+        final list = data.map<Map<String, String>>((item) {
+          final m = Map<String, dynamic>.from(item as Map);
+          return {
+            'label': (m['title'] ?? m['label'] ?? 'Macro').toString(),
+            'text': (m['text'] ?? '').toString(),
+          };
+        }).where((m) => m['text']!.isNotEmpty).toList();
+
+        if (list.isNotEmpty) {
+          _cannedMacros = list;
+          notifyListeners();
+        }
+      }
+    });
+
+    // 14. Agent Past Tickets History
+    SocketService.on(AppConstants.evtAgentHistoryData, (data) {
+      if (data is Map) {
+        final chatsList = data['chats'];
+        if (chatsList is List) {
+          _resolvedHistory = chatsList
+              .map((c) => ChatModel.fromJson(Map<String, dynamic>.from(c)))
+              .toList();
+        }
+        _isLoadingHistory = false;
+        notifyListeners();
+      }
+    });
   }
 
   // ── FCM Token Registration Helper ────────────────────────
@@ -420,6 +471,14 @@ class AgentProvider extends ChangeNotifier {
     _messages.clear();
     _agentStatus = 'available';
     notifyListeners();
+    fetchHistory();
+  }
+
+  Future<void> fetchHistory() async {
+    if (_currentAgent == null) return;
+    _isLoadingHistory = true;
+    notifyListeners();
+    SocketService.getAgentHistory(_currentAgent!.id);
   }
 
   void clearError() {
