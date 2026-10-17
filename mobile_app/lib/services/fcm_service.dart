@@ -60,10 +60,22 @@ class FcmService {
       },
     );
 
-    // 3. Register background message handler
+    // 3. Android 13+ (API 33+) explicit notification permission prompt
+    try {
+      final androidImplementation = _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      final granted =
+          await androidImplementation?.requestNotificationsPermission();
+      debugPrint('> [FCM] Android system notification permission granted: $granted');
+    } catch (e) {
+      debugPrint('> [FCM] Notification permission request error: $e');
+    }
+
+    // 4. Register background message handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    // 4. Request FCM permission
+    // 5. Request FCM permission
     final messaging = FirebaseMessaging.instance;
     await messaging.requestPermission(
       alert: true,
@@ -72,7 +84,14 @@ class FcmService {
       provisional: false,
     );
 
-    // 5. Foreground message handler
+    // 6. Enable heads-up alerts when app is in the FOREGROUND
+    await messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // 7. Foreground message handler
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       _showLocalNotification(message);
     });
@@ -132,8 +151,9 @@ class FcmService {
       styleInformation: BigTextStyleInformation(body),
     );
 
+    debugPrint('> [FCM] Showing local notification: $title - $body');
     await _localNotifications.show(
-      chatId.hashCode,
+      chatId.hashCode.abs(),
       title,
       body,
       NotificationDetails(android: androidDetails),

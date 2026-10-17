@@ -401,15 +401,36 @@ app.prepare().then(async () => {
       io.to("agents_room").emit("incoming_chat_broadcast", newChat);
       console.log(`> [Socket] Broadcasted new customer inquiry ${chatId} to ${freeAgents.length} free agents and agents_room`);
 
-      // ── Push Notification via FCM to available mobile agents ──
-      const availableWithFcm = Object.values(liveAgents).filter(a => a.status === "available" && a.fcmToken);
-      availableWithFcm.forEach(ag => {
-        sendAgentPushNotification(ag.fcmToken, {
-          title: `🔔 New Chat: ${newChat.customer.name}`,
-          body: `${newChat.subject || "Customer Inquiry"} - "${(newChat.initialMessage || "").slice(0, 80)}"`,
-          chatId: chatId
+      // ── Push Notification via FCM to all registered mobile agents ──
+      try {
+        const dbAgents = await User.find({
+          role: "agent",
+          fcmToken: { $exists: true, $ne: null },
+          status: { $ne: "terminated" }
         });
-      });
+        const tokens = new Set();
+        dbAgents.forEach(ag => {
+          if (ag.status !== "break" && ag.fcmToken) {
+            tokens.add(ag.fcmToken);
+          }
+        });
+        Object.values(liveAgents).forEach(ag => {
+          if (ag.status !== "terminated" && ag.status !== "break" && ag.fcmToken) {
+            tokens.add(ag.fcmToken);
+          }
+        });
+
+        console.log(`> [Push] Sending incoming chat notification for ${chatId} to ${tokens.size} agent device(s)`);
+        tokens.forEach(token => {
+          sendAgentPushNotification(token, {
+            title: `🔔 New Support Chat: ${newChat.customer.name}`,
+            body: `${newChat.subject || "Customer Inquiry"} - "${(newChat.initialMessage || "").slice(0, 80)}"`,
+            chatId: chatId
+          });
+        });
+      } catch (pushErr) {
+        console.error("> [Push Error]:", pushErr.message);
+      }
 
       broadcastMetrics(io);
     });
@@ -546,13 +567,21 @@ app.prepare().then(async () => {
 
       // ── Push Notification via FCM to assigned agent if customer sent message ──
       if (sender === "customer" && chat.assignedAgent?.id) {
-        const ag = liveAgents[chat.assignedAgent.id] || Object.values(liveAgents).find(a => a.id === chat.assignedAgent.id);
-        if (ag && ag.fcmToken) {
-          sendAgentPushNotification(ag.fcmToken, {
-            title: `💬 ${senderName || "Customer"}`,
-            body: text || "Sent a message",
-            chatId: chatId
-          });
+        try {
+          let token = liveAgents[chat.assignedAgent.id]?.fcmToken;
+          if (!token) {
+            const dbAg = await User.findById(chat.assignedAgent.id);
+            token = dbAg?.fcmToken;
+          }
+          if (token) {
+            sendAgentPushNotification(token, {
+              title: `💬 ${senderName || "Customer"}`,
+              body: text || "Sent a message",
+              chatId: chatId
+            });
+          }
+        } catch (mPushErr) {
+          console.error("> [Push Error msg]:", mPushErr.message);
         }
       }
     });
