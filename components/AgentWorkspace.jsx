@@ -11,12 +11,29 @@ import { sound } from "@/lib/sound";
 
 export default function AgentWorkspace({ socket, agentsList, authenticatedAgent }) {
   const [selectedAgentId, setSelectedAgentId] = useState(authenticatedAgent?.id || "agent_1");
-  const [currentAgent, setCurrentAgent] = useState(authenticatedAgent || null);
+  const [currentAgent, setCurrentAgent] = useState(() => {
+    let initialStatus = authenticatedAgent?.status || "available";
+    if (typeof window !== "undefined" && authenticatedAgent?.id) {
+      try {
+        const saved = localStorage.getItem(`bpo_agent_status_${authenticatedAgent.id}`);
+        if (saved) initialStatus = saved;
+      } catch {}
+    }
+    return authenticatedAgent ? { ...authenticatedAgent, status: initialStatus } : null;
+  });
 
   useEffect(() => {
     if (authenticatedAgent?.id) {
       setSelectedAgentId(authenticatedAgent.id);
-      setCurrentAgent(authenticatedAgent);
+      let savedStatus = null;
+      try {
+        savedStatus = localStorage.getItem(`bpo_agent_status_${authenticatedAgent.id}`);
+      } catch {}
+      setCurrentAgent((prev) => ({
+        ...(prev || authenticatedAgent),
+        ...authenticatedAgent,
+        status: savedStatus || prev?.status || authenticatedAgent.status || "available"
+      }));
     }
   }, [authenticatedAgent]);
 
@@ -52,6 +69,11 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       setNotificationPermission(Notification.permission);
+      if (Notification.permission === "default") {
+        sound.requestNotificationPermission().then((perm) => {
+          setNotificationPermission(perm);
+        }).catch(() => {});
+      }
     }
   }, []);
 
@@ -121,9 +143,15 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
   useEffect(() => {
     if (!socket || !selectedAgentId) return;
 
+    let savedStatus = null;
+    try {
+      savedStatus = localStorage.getItem(`bpo_agent_status_${selectedAgentId}`);
+    } catch {}
+    const initialStatus = savedStatus || currentAgent?.status || "available";
+
     socket.emit("agent_register", {
       agentId: selectedAgentId,
-      status: "available"
+      status: initialStatus
     });
 
     const handleAgentRegistered = ({ agent }) => {
@@ -305,6 +333,16 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
     if (newStatus !== "available") {
       sound.stopRingingAlert();
     }
+    setCurrentAgent((prev) => (prev ? { ...prev, status: newStatus } : prev));
+    try {
+      localStorage.setItem(`bpo_agent_status_${selectedAgentId}`, newStatus);
+      const savedSession = localStorage.getItem("bpo_agent_session");
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession);
+        parsed.status = newStatus;
+        localStorage.setItem("bpo_agent_session", JSON.stringify(parsed));
+      }
+    } catch {}
     if (socket) {
       socket.emit("agent_update_status", {
         agentId: selectedAgentId,
@@ -395,7 +433,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
   };
 
   return (
-    <div style={{ maxWidth: "1280px", margin: "16px auto", padding: "0 16px" }}>
+    <div className="agent-workspace-container" style={{ maxWidth: "1280px", margin: "16px auto", padding: "0 16px" }}>
       
       {/* Toast Notification */}
       {toastNotification && (
@@ -473,78 +511,17 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
               <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "8px", backgroundColor: "#f8fafc", border: "1px solid var(--border-color)" }}>
                 <span className={`status-indicator status-${currentAgent?.status || "offline"}`} />
                 <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-                  Status: <strong style={{ color: currentAgent?.status === "available" ? "#059669" : currentAgent?.status === "in_chat" ? "#2563eb" : "#d97706" }}>
-                    {currentAgent?.status === "available" ? "Free (Ready for Chats)" : currentAgent?.status === "in_chat" ? "In Active Chat" : currentAgent?.status || "Offline"}
+                  Status: <strong style={{ color: currentAgent?.status === "available" ? "#059669" : currentAgent?.status === "in_chat" ? "#2563eb" : currentAgent?.status === "break" ? "#7c3aed" : currentAgent?.status === "offline" ? "#64748b" : "#d97706" }}>
+                    {currentAgent?.status === "available" ? "Free (Ready)" : currentAgent?.status === "in_chat" ? "In Active Chat" : currentAgent?.status === "break" ? "On Break" : currentAgent?.status === "offline" ? "Offline" : "Away / Pause"}
                   </strong>
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Quick Status & Push Alert Controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            
-            {/* Desktop Push Notification Permission Button / Badge */}
-            {notificationPermission !== "granted" ? (
-              <button
-                type="button"
-                id="enable-push-notifications-btn"
-                onClick={handleRequestPushNotifications}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "7px",
-                  fontSize: "12px",
-                  fontWeight: "700",
-                  padding: "8px 14px",
-                  borderRadius: "8px",
-                  backgroundColor: "#2563eb",
-                  color: "#ffffff",
-                  border: "none",
-                  cursor: "pointer",
-                  boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
-                  transition: "background-color 0.15s ease"
-                }}
-              >
-                <BellRing size={15} />
-                <span>Enable Push & Sound Alerts</span>
-              </button>
-            ) : (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "6px 12px",
-                borderRadius: "8px",
-                backgroundColor: "#ecfdf5",
-                border: "1px solid #a7f3d0"
-              }}>
-                <span style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12px", fontWeight: "700", color: "#059669" }}>
-                  <Bell size={14} color="#059669" />
-                  Push Alerts Active
-                </span>
-                <button
-                  type="button"
-                  id="test-sound-btn"
-                  onClick={() => sound.playIncomingAlert()}
-                  title="Test Sound Alert"
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: "600",
-                    padding: "3px 8px",
-                    borderRadius: "6px",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #cbd5e1",
-                    color: "#334155",
-                    cursor: "pointer"
-                  }}
-                >
-                  🔊 Test
-                </button>
-              </div>
-            )}
-
-            {/* Sound Mute Toggle */}
+          {/* 4 STRUCTURED & SMALL AGENT CONTROL BUTTON OPTIONS */}
+          <div className="agent-status-segmented-group">
+            {/* Sound Alerts Toggle Button */}
             <button
               type="button"
               id="toggle-audio-mute-btn"
@@ -555,65 +532,46 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
                   sound.stopRingingAlert();
                 }
               }}
-              title={isAudioMuted ? "Unmute Sound" : "Mute Sound"}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                fontSize: "12px",
-                fontWeight: "600",
-                padding: "8px 12px",
-                borderRadius: "8px",
-                backgroundColor: isAudioMuted ? "#fef2f2" : "#ffffff",
-                color: isAudioMuted ? "#ef4444" : "#475569",
-                border: isAudioMuted ? "1px solid #fecaca" : "1px solid #cbd5e1",
-                cursor: "pointer"
-              }}
+              title={isAudioMuted ? "Unmute Sound Alerts" : "Mute Sound Alerts"}
+              className={`agent-status-btn ${isAudioMuted ? "active-muted" : "active-sound"}`}
             >
-              {isAudioMuted ? <VolumeX size={15} color="#ef4444" /> : <Volume2 size={15} color="#475569" />}
+              {isAudioMuted ? <VolumeX size={13} color="#ef4444" /> : <Volume2 size={13} color="#059669" />}
               <span>{isAudioMuted ? "Muted" : "Sound ON"}</span>
             </button>
 
-            <div className="status-button-group">
-              <button
-                type="button"
-                onClick={() => handleStatusChange("available")}
-                disabled={activeChat !== null}
-                style={{
-                  fontSize: "12px",
-                  fontWeight: "700",
-                  padding: "8px 14px",
-                  borderRadius: "8px",
-                  backgroundColor: currentAgent?.status === "available" ? "#ecfdf5" : "#ffffff",
-                  color: currentAgent?.status === "available" ? "#059669" : "var(--text-secondary)",
-                  border: currentAgent?.status === "available" ? "1px solid #10b981" : "1px solid #cbd5e1",
-                  boxShadow: "var(--shadow-sm)",
-                  opacity: activeChat !== null ? 0.5 : 1,
-                  cursor: activeChat !== null ? "not-allowed" : "pointer"
-                }}
-              >
-                🟢 Free (Ready)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleStatusChange("busy")}
-                disabled={activeChat !== null}
-                style={{
-                  fontSize: "12px",
-                  fontWeight: "700",
-                  padding: "8px 14px",
-                  borderRadius: "8px",
-                  backgroundColor: currentAgent?.status === "busy" ? "#fffbeb" : "#ffffff",
-                  color: currentAgent?.status === "busy" ? "#d97706" : "var(--text-secondary)",
-                  border: currentAgent?.status === "busy" ? "1px solid #f59e0b" : "1px solid #cbd5e1",
-                  boxShadow: "var(--shadow-sm)",
-                  opacity: activeChat !== null ? 0.5 : 1,
-                  cursor: activeChat !== null ? "not-allowed" : "pointer"
-                }}
-              >
-                🟡 Away / Pause
-              </button>
-            </div>
+            {/* Agent Status Buttons */}
+            <button
+              type="button"
+              onClick={() => handleStatusChange("available")}
+              disabled={activeChat !== null}
+              title="Ready to receive incoming chat broadcasts"
+              className={`agent-status-btn ${currentAgent?.status === "available" ? "active-available" : ""}`}
+            >
+              <span className="agent-status-dot" style={{ backgroundColor: "#10b981" }} />
+              <span>Free (Ready)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleStatusChange("busy")}
+              disabled={activeChat !== null}
+              title="Pause queue - Away from desk"
+              className={`agent-status-btn ${currentAgent?.status === "busy" ? "active-busy" : ""}`}
+            >
+              <span className="agent-status-dot" style={{ backgroundColor: "#f59e0b" }} />
+              <span>Away</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleStatusChange("break")}
+              disabled={activeChat !== null}
+              title="Pause queue - On Break"
+              className={`agent-status-btn ${currentAgent?.status === "break" ? "active-break" : ""}`}
+            >
+              <span className="agent-status-dot" style={{ backgroundColor: "#8b5cf6" }} />
+              <span>Break</span>
+            </button>
           </div>
 
         </div>
@@ -1160,46 +1118,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
           </div>
 
         </div>
-      ) : (
-        /* IDLE / WAITING STATE FOR AGENT */
-        <div className="glass-panel" style={{ padding: "60px 32px", textAlign: "center", backgroundColor: "#ffffff" }}>
-          <div style={{
-            width: "64px",
-            height: "64px",
-            borderRadius: "50%",
-            backgroundColor: currentAgent?.status === "available" ? "#ecfdf5" : "#fffbeb",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 20px auto",
-            border: currentAgent?.status === "available" ? "1px solid #a7f3d0" : "1px solid #fde68a"
-          }}>
-            <Headphones size={32} color={currentAgent?.status === "available" ? "#059669" : "#d97706"} />
-          </div>
-
-          <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#0f172a", marginBottom: "8px" }}>
-            {currentAgent?.status === "available" ? "Ready & Standing By for Incoming Chats" : "Agent Currently Away / Paused"}
-          </h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: "14px", maxWidth: "520px", margin: "0 auto 24px auto", lineHeight: "1.6" }}>
-            {currentAgent?.status === "available" ? (
-              <>
-                You are registered as <strong style={{ color: "#0f172a" }}>{currentAgent?.name}</strong> and your status is <strong style={{ color: "#059669" }}>Available (Free)</strong>. When a customer initiates a chat, you and all free agents will receive an instant audio & visual alert. The first agent to click "Accept Chat" claims the ticket!
-              </>
-            ) : (
-              <>
-                Your status is set to <strong style={{ color: "#d97706" }}>Away / Paused</strong>. Switch your status to <strong>Free (Available)</strong> above to receive incoming customer chat requests.
-              </>
-            )}
-          </p>
-
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "12px", padding: "10px 20px", borderRadius: "10px", backgroundColor: "#f8fafc", border: "1px solid var(--border-color)", fontSize: "13px", boxShadow: "var(--shadow-sm)" }}>
-            <span className={`status-indicator status-${currentAgent?.status || "offline"}`} />
-            <span>Agent Stats Today: <strong style={{ color: "#0f172a" }}>{currentAgent?.stats?.resolvedToday || 0} Resolved</strong></span>
-            <span style={{ color: "var(--text-muted)" }}>•</span>
-            <span style={{ color: "#d97706", fontWeight: "700" }}>★ {currentAgent?.stats?.avgRating || "5.0"} Rating</span>
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {/* RESOLUTION SUMMARY MODAL */}
       {showResolveModal && (

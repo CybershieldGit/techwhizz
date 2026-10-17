@@ -75,6 +75,30 @@ class AuthService {
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.sessionKey);
+    await prefs.remove('agent_status_persisted');
+  }
+
+  // ── Status Persistence ────────────────────────────────────
+  static Future<void> saveAgentStatus(String status) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(AppConstants.sessionKey);
+      if (saved != null) {
+        final json = jsonDecode(saved) as Map<String, dynamic>;
+        json['status'] = status;
+        await prefs.setString(AppConstants.sessionKey, jsonEncode(json));
+      }
+      await prefs.setString('agent_status_persisted', status);
+    } catch (_) {}
+  }
+
+  static Future<String?> getSavedAgentStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('agent_status_persisted');
+    } catch (_) {
+      return null;
+    }
   }
 
   // ── Private ───────────────────────────────────────────────

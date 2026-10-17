@@ -185,14 +185,22 @@ app.prepare().then(async () => {
         if (agent.activeChatId && (!liveChats[agent.activeChatId] || liveChats[agent.activeChatId].status !== "active")) {
           agent.activeChatId = null;
         }
-        if (status === "available" || !agent.activeChatId) {
-          agent.status = status || "available";
+        if (agent.activeChatId && liveChats[agent.activeChatId]?.status === "active") {
+          agent.status = "in_chat";
+        } else if (status) {
+          agent.status = status;
+        } else {
+          agent.status = agent.status || "available";
         }
         socket.join("agents_room");
         socket.join(`agent_${agent.id}`);
         socket.emit("agent_registered", { agent });
         broadcastAgentList(io);
         broadcastMetrics(io);
+
+        try {
+          await User.updateOne({ _id: agent.id }, { status: agent.status });
+        } catch (e) {}
 
         // If agent already has an active ongoing chat, restore it to client
         let activeChatForAgent = null;

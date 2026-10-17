@@ -521,6 +521,93 @@ input, textarea, select {
   }
 }
 
+/* Agent Status Segmented Bar */
+.agent-status-segmented-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f8fafc;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.agent-status-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.agent-status-btn:hover:not(:disabled) {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.agent-status-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.agent-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.agent-status-btn.active-available {
+  background-color: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.15);
+}
+
+.agent-status-btn.active-busy {
+  background-color: #fffbeb;
+  color: #d97706;
+  border-color: #fde68a;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15);
+}
+
+.agent-status-btn.active-break {
+  background-color: #f5f3ff;
+  color: #7c3aed;
+  border-color: #ddd6fe;
+  box-shadow: 0 1px 3px rgba(139, 92, 246, 0.15);
+}
+
+.agent-status-btn.active-offline {
+  background-color: #f1f5f9;
+  color: #475569;
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(100, 116, 139, 0.15);
+}
+
+.agent-status-btn.active-sound {
+  background-color: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.15);
+}
+
+.agent-status-btn.active-muted {
+  background-color: #fef2f2;
+  color: #ef4444;
+  border-color: #fecaca;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.15);
+}
+
 /* Mobile Screens (<= 768px) */
 @media (max-width: 768px) {
   .support-portal-header {
@@ -566,14 +653,16 @@ input, textarea, select {
   }
 
   .support-header-right {
-    width: 100% !important;
+    display: none !important;
   }
 
-  .support-nav-actions {
-    width: 100% !important;
-    justify-content: space-between !important;
-    padding-top: 6px !important;
-    border-top: 1px solid #f1f5f9 !important;
+  .support-subtitle {
+    display: none !important;
+  }
+
+  .agent-workspace-container {
+    padding: 0 10px !important;
+    margin: 8px auto !important;
   }
 
   .agent-identity-panel {
@@ -587,18 +676,18 @@ input, textarea, select {
     gap: 12px !important;
   }
 
-  .status-button-group {
+  .agent-status-segmented-group {
     display: grid !important;
-    grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-columns: repeat(4, 1fr) !important;
     width: 100% !important;
     gap: 4px !important;
+    padding: 3px !important;
   }
 
-  .status-button-group button {
-    padding: 8px 4px !important;
+  .agent-status-btn {
+    padding: 7px 4px !important;
     font-size: 11px !important;
-    text-align: center !important;
-    justify-content: center !important;
+    gap: 4px !important;
   }
 
   .incoming-broadcast-card {

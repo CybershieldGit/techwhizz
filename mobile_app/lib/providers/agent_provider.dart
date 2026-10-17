@@ -51,6 +51,9 @@ class AgentProvider extends ChangeNotifier {
   // Socket connection state
   bool _isSocketConnected = false;
 
+  // Sound Alerts Toggle
+  bool _isSoundMuted = false;
+
   // ── Getters ───────────────────────────────────────────────
   AgentModel? get currentAgent => _currentAgent;
   bool get isLoggedIn => _currentAgent != null;
@@ -70,6 +73,12 @@ class AgentProvider extends ChangeNotifier {
   List<ChatModel> get resolvedHistory => List.unmodifiable(_resolvedHistory);
   bool get isLoadingHistory => _isLoadingHistory;
   bool get isSocketConnected => _isSocketConnected;
+  bool get isSoundMuted => _isSoundMuted;
+
+  void toggleSoundMuted() {
+    _isSoundMuted = !_isSoundMuted;
+    notifyListeners();
+  }
 
   // ── Initialization / Session Check ────────────────────────
   Future<bool> checkExistingSession() async {
@@ -78,8 +87,11 @@ class AgentProvider extends ChangeNotifier {
 
     final savedAgent = await AuthService.loadSavedSession();
     if (savedAgent != null) {
+      final persistedStatus = await AuthService.getSavedAgentStatus();
       _currentAgent = savedAgent;
-      _agentStatus = savedAgent.status.isNotEmpty ? savedAgent.status : 'available';
+      _agentStatus = (persistedStatus != null && persistedStatus.isNotEmpty)
+          ? persistedStatus
+          : (savedAgent.status.isNotEmpty ? savedAgent.status : 'available');
       _isLoading = false;
       _connectAndRegisterSocket();
       notifyListeners();
@@ -195,10 +207,12 @@ class AgentProvider extends ChangeNotifier {
               b['chatId']?.toString() == chatId || b['id']?.toString() == chatId);
           if (!exists) {
             _incomingBroadcasts.insert(0, broadcast);
-            try {
-              HapticFeedback.heavyImpact();
-              SystemSound.play(SystemSoundType.alert);
-            } catch (_) {}
+            if (!_isSoundMuted && _agentStatus == 'available') {
+              try {
+                HapticFeedback.heavyImpact();
+                SystemSound.play(SystemSoundType.alert);
+              } catch (_) {}
+            }
             notifyListeners();
           }
         }
@@ -439,6 +453,8 @@ class AgentProvider extends ChangeNotifier {
   void updateStatus(String status) {
     if (_currentAgent == null) return;
     _agentStatus = status;
+    _currentAgent = _currentAgent!.copyWith(status: status);
+    AuthService.saveAgentStatus(status);
     SocketService.updateStatus(_currentAgent!.id, status);
     notifyListeners();
   }
