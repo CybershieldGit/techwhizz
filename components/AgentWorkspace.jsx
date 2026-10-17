@@ -88,19 +88,6 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [resolutionSummary, setResolutionSummary] = useState("");
 
-  const [isAgentDropdownOpen, setIsAgentDropdownOpen] = useState(false);
-  const agentDropdownRef = useRef(null);
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (agentDropdownRef.current && !agentDropdownRef.current.contains(event.target)) {
-        setIsAgentDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
@@ -443,110 +430,44 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
             <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "var(--text-muted)", letterSpacing: "0.05em" }}>
               Active Support Agent Identity
             </span>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px" }}>
-              <div style={{ position: "relative" }} ref={agentDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsAgentDropdownOpen(!isAgentDropdownOpen)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    padding: "8px 14px",
-                    borderRadius: "8px",
-                    backgroundColor: "#ffffff",
-                    border: isAgentDropdownOpen ? "1px solid #2563eb" : "1px solid #cbd5e1",
-                    color: "#0f172a",
-                    fontSize: "14px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    boxShadow: isAgentDropdownOpen ? "0 0 0 3px rgba(37, 99, 235, 0.12)" : "var(--shadow-sm)"
-                  }}
-                >
-                  <img
-                    src={currentAgent?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50"}
-                    alt={currentAgent?.name}
-                    style={{ width: "22px", height: "22px", borderRadius: "50%", objectFit: "cover" }}
-                  />
-                  <span>
-                    {currentAgent?.name} ({currentAgent?.role} • {currentAgent?.department})
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px", flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "8px 14px",
+                  borderRadius: "8px",
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  color: "#0f172a",
+                  boxShadow: "var(--shadow-sm)"
+                }}
+              >
+                <img
+                  src={currentAgent?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50"}
+                  alt={currentAgent?.name}
+                  style={{ width: "26px", height: "26px", borderRadius: "50%", objectFit: "cover" }}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>
+                    {currentAgent?.name}
                   </span>
-                  <ChevronDown
-                    size={16}
-                    color="#64748b"
-                    style={{
-                      transform: isAgentDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
-                      transition: "transform 0.2s ease"
-                    }}
-                  />
-                </button>
-
-                {isAgentDropdownOpen && (
-                  <div style={{
-                    position: "absolute",
-                    top: "calc(100% + 4px)",
-                    left: 0,
-                    minWidth: "320px",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "10px",
-                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
-                    zIndex: 100,
-                    overflow: "hidden",
-                    padding: "4px"
+                  <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                    ({currentAgent?.role} • {currentAgent?.department})
+                  </span>
+                  <span style={{
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    backgroundColor: "#eff6ff",
+                    color: "#2563eb",
+                    border: "1px solid #bfdbfe"
                   }}>
-                    {agentsList?.map((ag) => {
-                      const isSelected = selectedAgentId === ag.id;
-                      return (
-                        <button
-                          key={ag.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedAgentId(ag.id);
-                            setIsAgentDropdownOpen(false);
-                          }}
-                          style={{
-                            width: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                            padding: "9px 12px",
-                            borderRadius: "6px",
-                            backgroundColor: isSelected ? "#eff6ff" : "transparent",
-                            color: isSelected ? "#1d4ed8" : "#0f172a",
-                            textAlign: "left",
-                            fontSize: "13px",
-                            cursor: "pointer",
-                            border: "none",
-                            fontWeight: isSelected ? "700" : "500"
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSelected) e.currentTarget.style.backgroundColor = "#f8fafc";
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
-                          }}
-                        >
-                          <img
-                            src={ag.avatar}
-                            alt={ag.name}
-                            style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover" }}
-                          />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <span style={{ fontWeight: "700" }}>{ag.name}</span>
-                              <span className={`status-indicator status-${ag.status}`} />
-                            </div>
-                            <span style={{ fontSize: "11px", color: isSelected ? "#3b82f6" : "#64748b", display: "block" }}>
-                              {ag.role} • {ag.department}
-                            </span>
-                          </div>
-                          {isSelected && <Check size={16} color="#2563eb" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                    Active Session
+                  </span>
+                </div>
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "8px", backgroundColor: "#f8fafc", border: "1px solid var(--border-color)" }}>

@@ -250,8 +250,8 @@ export default function SupportPortal() {
       <header className="glass-nav support-portal-header">
         <div className="support-header-inner">
           
-          {/* Top Brand Row */}
-          <div className="support-brand-row">
+          {/* 1. Left: Brand & Title */}
+          <div className="support-brand-section">
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <div style={{
                 width: "40px",
@@ -290,8 +290,8 @@ export default function SupportPortal() {
               </div>
             </div>
 
-            {/* Mobile Agent Quick Avatar & Logout */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {/* Mobile-Only Agent Quick Avatar & Logout */}
+            <div className="mobile-agent-header-actions">
               <div style={{
                 display: "flex",
                 alignItems: "center",
@@ -333,7 +333,7 @@ export default function SupportPortal() {
             </div>
           </div>
 
-          {/* Console Tabs (Agent Desk vs Fleet Supervisor) */}
+          {/* 2. Center: Console Tabs (Agent Desk vs Fleet Supervisor) */}
           <div className="support-tabs-group">
             <button
               onClick={() => setActiveTab("workspace")}
@@ -386,51 +386,105 @@ export default function SupportPortal() {
             </button>
           </div>
 
-          {/* Quick Cross-Portal Switcher Links */}
-          <div className="support-nav-actions">
-            <Link
-              href="/"
-              target="_blank"
-              style={{
+          {/* 3. Right: Cross-Portal Switcher Links & Desktop Agent Profile */}
+          <div className="support-header-right">
+            <div className="support-nav-actions">
+              <Link
+                href="/"
+                target="_blank"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  backgroundColor: "#ffffff",
+                  border: "1px solid var(--border-color)",
+                  color: "var(--accent-blue)",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  textDecoration: "none",
+                  boxShadow: "var(--shadow-sm)"
+                }}
+              >
+                <MessageSquare size={13} />
+                <span>Customer Portal (/)</span>
+              </Link>
+
+              <Link
+                href="/admin"
+                target="_blank"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  backgroundColor: "#f5f3ff",
+                  border: "1px solid #ddd6fe",
+                  color: "#7c3aed",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  textDecoration: "none",
+                  boxShadow: "var(--shadow-sm)"
+                }}
+              >
+                <ShieldCheck size={13} />
+                <span>Admin Portal (/admin)</span>
+              </Link>
+            </div>
+
+            <div className="desktop-agent-divider" style={{ width: "1px", height: "26px", backgroundColor: "#e2e8f0" }} />
+
+            {/* Desktop Agent Profile & Logout */}
+            <div className="desktop-agent-session-badge">
+              <div style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "5px",
-                padding: "5px 10px",
-                borderRadius: "6px",
+                gap: "8px",
+                padding: "5px 12px",
+                borderRadius: "8px",
                 backgroundColor: "#ffffff",
                 border: "1px solid var(--border-color)",
-                color: "var(--accent-blue)",
-                fontSize: "11px",
-                fontWeight: "600",
-                textDecoration: "none",
                 boxShadow: "var(--shadow-sm)"
-              }}
-            >
-              <MessageSquare size={12} />
-              <span>Customer Portal (/)</span>
-            </Link>
+              }}>
+                <img
+                  src={agentSession.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50"}
+                  alt={agentSession.name}
+                  style={{ width: "24px", height: "24px", borderRadius: "50%", objectFit: "cover" }}
+                />
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: "#0f172a", lineHeight: 1.2 }}>
+                    {agentSession.name}
+                  </span>
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                    {agentSession.role || "Support Agent"}
+                  </span>
+                </div>
+              </div>
 
-            <Link
-              href="/admin"
-              target="_blank"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                padding: "5px 10px",
-                borderRadius: "6px",
-                backgroundColor: "#f5f3ff",
-                border: "1px solid #ddd6fe",
-                color: "#7c3aed",
-                fontSize: "11px",
-                fontWeight: "600",
-                textDecoration: "none",
-                boxShadow: "var(--shadow-sm)"
-              }}
-            >
-              <ShieldCheck size={12} />
-              <span>Admin Portal (/admin)</span>
-            </Link>
+              <button
+                onClick={handleAgentLogout}
+                title="Sign Out of Session"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  backgroundColor: "#fff1f2",
+                  border: "1px solid #fecdd3",
+                  color: "#e11d48",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  transition: "background-color 0.15s ease"
+                }}
+              >
+                <LogOut size={14} />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
 
         </div>

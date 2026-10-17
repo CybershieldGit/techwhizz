@@ -354,11 +354,70 @@ input, textarea, select {
   gap: 4px;
 }
 
+/* Support Portal Header & Modern 3-Column Navigation */
+.support-portal-header {
+  padding: 12px 28px;
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.support-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+}
+
+.support-brand-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.mobile-agent-header-actions {
+  display: none;
+}
+
+.support-tabs-group {
+  display: flex;
+  align-items: center;
+  background-color: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  gap: 4px;
+}
+
+.support-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
 .support-nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.desktop-agent-divider {
+  display: block;
+}
+
+.desktop-agent-session-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Active Chat Grid */
@@ -465,7 +524,7 @@ input, textarea, select {
 /* Mobile Screens (<= 768px) */
 @media (max-width: 768px) {
   .support-portal-header {
-    padding: 10px 12px !important;
+    padding: 10px 14px !important;
   }
 
   .support-header-inner {
@@ -474,11 +533,25 @@ input, textarea, select {
     gap: 10px !important;
   }
 
-  .support-brand-row {
+  .support-brand-section {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
     width: 100% !important;
+  }
+
+  .mobile-agent-header-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .desktop-agent-session-badge {
+    display: none !important;
+  }
+
+  .desktop-agent-divider {
+    display: none !important;
   }
 
   .support-tabs-group {
@@ -490,6 +563,10 @@ input, textarea, select {
     justify-content: center !important;
     padding: 9px 12px !important;
     font-size: 13px !important;
+  }
+
+  .support-header-right {
+    width: 100% !important;
   }
 
   .support-nav-actions {
