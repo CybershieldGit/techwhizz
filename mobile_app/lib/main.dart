@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/constants.dart';
@@ -16,7 +17,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppConstants.loadServerUrl();
 
-  // Initialize Firebase safely (fallback gracefully if google-services.json is not configured)
+  // Initialize Firebase safely
   try {
     await Firebase.initializeApp();
     await FcmService.initialize(
@@ -24,7 +25,7 @@ void main() async {
         final routerContext = rootNavigatorKey.currentContext;
         if (routerContext != null) {
           final id = chatId.replaceFirst('chat_', '');
-          Navigator.of(routerContext).pushNamed('/chat/$id');
+          routerContext.push('/chat/$id');
         }
       },
     );

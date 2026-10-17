@@ -128,27 +128,33 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Logo & Brand Header
                   Center(
                     child: Container(
-                      width: 64,
-                      height: 64,
+                      width: 120,
+                      height: 120,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.blue, AppColors.emerald],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(18),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(color: AppColors.border, width: 1.5),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.blue.withValues(alpha: 0.25),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
+                            color: AppColors.brandPrimary.withValues(alpha: 0.12),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.headset_mic_rounded,
-                        color: Colors.white,
-                        size: 34,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(26),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Icon(
+                            Icons.headset_mic_rounded,
+                            color: AppColors.brandPrimary,
+                            size: 54,
+                          ),
+                        ),
                       ),
                     ),
                   ),

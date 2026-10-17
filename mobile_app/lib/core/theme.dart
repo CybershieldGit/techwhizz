@@ -6,11 +6,22 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // ── Brand Palette ─────────────────────────────────────────
-  static const Color blue = Color(0xFF2563EB);
-  static const Color blueHover = Color(0xFF1D4ED8);
-  static const Color emerald = Color(0xFF059669);
-  static const Color emeraldLight = Color(0xFF10B981);
+  // ── Basic 2-Color Brand Palette ─────────────────────────────
+  // Primary (Deep Royal Navy): Represents enterprise authority, trust & security
+  static const Color brandPrimary = Color(0xFF1B3B8B);
+  static const Color brandPrimaryHover = Color(0xFF162E6E);
+  static const Color brandPrimaryLight = Color(0xFF2563EB);
+
+  // Accent / Secondary (Vibrant Emerald): Represents live connectivity, active status & dispatches
+  static const Color brandAccent = Color(0xFF059669);
+  static const Color brandAccentLight = Color(0xFF10B981);
+  static const Color brandAccentBg = Color(0xFFECFDF5);
+
+  // Backward-compatible semantic aliases
+  static const Color blue = brandPrimary;
+  static const Color blueHover = brandPrimaryHover;
+  static const Color emerald = brandAccent;
+  static const Color emeraldLight = brandAccentLight;
   static const Color amber = Color(0xFFD97706);
   static const Color rose = Color(0xFFE11D48);
   static const Color purple = Color(0xFF7C3AED);
@@ -31,7 +42,7 @@ class AppColors {
 
   // ── Status Indicators ─────────────────────────────────────
   static const Color statusAvailable = Color(0xFF10B981);
-  static const Color statusInChat = Color(0xFF2563EB);
+  static const Color statusInChat = Color(0xFF1B3B8B);
   static const Color statusBusy = Color(0xFFF59E0B);
   static const Color statusOffline = Color(0xFF94A3B8);
   static const Color statusTerminated = Color(0xFFE11D48);
@@ -94,10 +105,10 @@ class AppTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: AppColors.bgPrimary,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.blue,
+        seedColor: AppColors.brandPrimary,
         brightness: Brightness.light,
-        primary: AppColors.blue,
-        secondary: AppColors.emerald,
+        primary: AppColors.brandPrimary,
+        secondary: AppColors.brandAccent,
         surface: AppColors.bgWhite,
         error: AppColors.rose,
       ),

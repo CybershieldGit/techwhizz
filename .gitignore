@@ -55,3 +55,6 @@ ehthumbs.db
 next-env.d.ts
 .vercel
 *.pem
+
+firebase-service-account.json
+google-services.json

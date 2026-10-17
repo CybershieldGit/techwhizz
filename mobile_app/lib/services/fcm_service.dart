@@ -54,48 +54,59 @@ class FcmService {
       initializationSettings,
       onDidReceiveNotificationResponse: (details) {
         final payload = details.payload;
-        if (payload != null && payload.startsWith('chat_')) {
+        if (payload != null && payload.isNotEmpty) {
           onNotificationTap(payload);
         }
       },
     );
 
-    // 3. Request FCM permission
+    // 3. Register background message handler
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+    // 4. Request FCM permission
     final messaging = FirebaseMessaging.instance;
     await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
+      provisional: false,
     );
 
-    // 4. Foreground message handler
+    // 5. Foreground message handler
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       _showLocalNotification(message);
     });
 
-    // 5. Handle notification tap when app is in background (not killed)
+    // 6. Handle notification tap when app is in background (not killed)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       final chatId = message.data['chatId'];
-      if (chatId != null) {
-        onNotificationTap(chatId);
+      if (chatId != null && chatId.toString().isNotEmpty) {
+        onNotificationTap(chatId.toString());
       }
     });
 
-    // 6. Handle notification tap when app was killed
+    // 7. Handle notification tap when app was killed
     final initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) {
       final chatId = initialMessage.data['chatId'];
-      if (chatId != null) {
+      if (chatId != null && chatId.toString().isNotEmpty) {
         // Slight delay so the widget tree is ready
-        await Future.delayed(const Duration(milliseconds: 500));
-        onNotificationTap(chatId);
+        await Future.delayed(const Duration(milliseconds: 600));
+        onNotificationTap(chatId.toString());
       }
     }
   }
 
   // ── Get FCM Token ─────────────────────────────────────────
   static Future<String?> getToken() async {
-    return await FirebaseMessaging.instance.getToken();
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      debugPrint('> [FCM] Device Token: $token');
+      return token;
+    } catch (e) {
+      debugPrint('> [FCM] Could not get token: $e');
+      return null;
+    }
   }
 
   // ── Show Local Notification ───────────────────────────────
@@ -116,7 +127,7 @@ class FcmService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      color: const Color(0xFF059669),
+      color: const Color(0xFF1B3B8B),
       icon: '@mipmap/ic_launcher',
       styleInformation: BigTextStyleInformation(body),
     );
@@ -144,7 +155,7 @@ class FcmService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      color: Color(0xFF059669),
+      color: Color(0xFF1B3B8B),
     );
 
     await _localNotifications.show(

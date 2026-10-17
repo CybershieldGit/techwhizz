@@ -1,12 +1,64 @@
 import { createServer } from "node:http";
+import fs from "node:fs";
 import next from "next";
 import { Server } from "socket.io";
 import bcrypt from "bcryptjs";
+import { initializeApp, cert } from "firebase-admin/app";
+import { getMessaging } from "firebase-admin/messaging";
 import { connectDB } from "./lib/db.js";
 import { initDatabase } from "./lib/seed.js";
 import User from "./models/User.js";
 import Chat from "./models/Chat.js";
 import CannedMacro from "./models/CannedMacro.js";
+
+// ── Firebase Admin FCM Push Notification Service ──────────
+let firebaseMessaging = null;
+try {
+  const serviceAccountPath = "./firebase-service-account.json";
+  if (fs.existsSync(serviceAccountPath)) {
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
+    const fbApp = initializeApp({
+      credential: cert(serviceAccount)
+    });
+    firebaseMessaging = getMessaging(fbApp);
+    console.log("> [Firebase] FCM Push Notifications initialized successfully.");
+  } else {
+    console.log("> [Firebase] firebase-service-account.json not found; push notifications disabled.");
+  }
+} catch (err) {
+  console.error("> [Firebase] Push initialization error:", err.message);
+}
+
+async function sendAgentPushNotification(fcmToken, { title, body, chatId }) {
+  if (!firebaseMessaging || !fcmToken) return;
+  try {
+    const message = {
+      token: fcmToken,
+      notification: {
+        title,
+        body
+      },
+      data: {
+        chatId: String(chatId || ""),
+        click_action: "FLUTTER_NOTIFICATION_CLICK"
+      },
+      android: {
+        priority: "high",
+        notification: {
+          channelId: "omniflow_incoming",
+          sound: "default",
+          priority: "high",
+          defaultSound: true,
+          defaultVibrateTimings: true
+        }
+      }
+    };
+    const response = await firebaseMessaging.send(message);
+    console.log(`> [FCM] Push sent to token ${fcmToken.slice(0, 10)}... (ID: ${response})`);
+  } catch (err) {
+    console.error(`> [FCM] Push send error:`, err.message);
+  }
+}
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME || "0.0.0.0";
@@ -64,6 +116,7 @@ app.prepare().then(async () => {
         department: ag.department || "General",
         avatar: ag.avatar,
         status: ag.status || "available",
+        fcmToken: ag.fcmToken || null,
         terminatedAt: ag.terminatedAt ? ag.terminatedAt.toISOString() : null,
         terminationReason: ag.terminationReason || null,
         socketId: null,
@@ -348,6 +401,16 @@ app.prepare().then(async () => {
       io.to("agents_room").emit("incoming_chat_broadcast", newChat);
       console.log(`> [Socket] Broadcasted new customer inquiry ${chatId} to ${freeAgents.length} free agents and agents_room`);
 
+      // ── Push Notification via FCM to available mobile agents ──
+      const availableWithFcm = Object.values(liveAgents).filter(a => a.status === "available" && a.fcmToken);
+      availableWithFcm.forEach(ag => {
+        sendAgentPushNotification(ag.fcmToken, {
+          title: `🔔 New Chat: ${newChat.customer.name}`,
+          body: `${newChat.subject || "Customer Inquiry"} - "${(newChat.initialMessage || "").slice(0, 80)}"`,
+          chatId: chatId
+        });
+      });
+
       broadcastMetrics(io);
     });
 
@@ -480,6 +543,18 @@ app.prepare().then(async () => {
       }
 
       io.to(`chat_${chatId}`).emit("new_message", { chatId, message });
+
+      // ── Push Notification via FCM to assigned agent if customer sent message ──
+      if (sender === "customer" && chat.assignedAgent?.id) {
+        const ag = liveAgents[chat.assignedAgent.id] || Object.values(liveAgents).find(a => a.id === chat.assignedAgent.id);
+        if (ag && ag.fcmToken) {
+          sendAgentPushNotification(ag.fcmToken, {
+            title: `💬 ${senderName || "Customer"}`,
+            body: text || "Sent a message",
+            chatId: chatId
+          });
+        }
+      }
     });
 
     // ------------------------------------
