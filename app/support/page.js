@@ -28,8 +28,8 @@ export default function SupportPortal() {
   const [agentSession, setAgentSession] = useState(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [loginForm, setLoginForm] = useState({
-    email: "alex@support.bpo",
-    password: "bpo123"
+    email: "",
+    password: ""
   });
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
@@ -122,9 +122,6 @@ export default function SupportPortal() {
     }
   };
 
-  const handleQuickAgentSelect = (email) => {
-    setLoginForm({ email, password: "bpo123" });
-  };
 
   const handleAgentLogout = () => {
     localStorage.removeItem("bpo_agent_session");
@@ -200,16 +197,15 @@ export default function SupportPortal() {
               </div>
 
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Password</label>
-                  <span style={{ fontSize: "11px", color: "#059669", fontWeight: "600" }}>Default: bpo123</span>
-                </div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                  Password
+                </label>
                 <input
                   type="password"
                   required
                   value={loginForm.password}
                   onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   style={{ width: "100%", padding: "11px 14px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px" }}
                 />
               </div>
@@ -237,47 +233,6 @@ export default function SupportPortal() {
                 <ArrowRight size={16} />
               </button>
             </form>
-
-            {/* Quick 1-click test agent selection */}
-            <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--border-color)" }}>
-              <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "var(--text-muted)", display: "block", marginBottom: "10px" }}>
-                Quick Test Credentials (Pre-seeded in MongoDB)
-              </span>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => handleQuickAgentSelect("alex@support.bpo")}
-                  style={{ padding: "8px", borderRadius: "6px", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", fontSize: "11px", textAlign: "left", cursor: "pointer" }}
-                >
-                  <strong style={{ display: "block", color: "#0f172a" }}>Alex Rivera</strong>
-                  <span style={{ color: "#2563eb" }}>Technical Support</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickAgentSelect("sarah@support.bpo")}
-                  style={{ padding: "8px", borderRadius: "6px", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", fontSize: "11px", textAlign: "left", cursor: "pointer" }}
-                >
-                  <strong style={{ display: "block", color: "#0f172a" }}>Sarah Chen</strong>
-                  <span style={{ color: "#d97706" }}>Billing & Accounts</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickAgentSelect("marcus@support.bpo")}
-                  style={{ padding: "8px", borderRadius: "6px", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", fontSize: "11px", textAlign: "left", cursor: "pointer" }}
-                >
-                  <strong style={{ display: "block", color: "#0f172a" }}>Marcus Vance</strong>
-                  <span style={{ color: "#059669" }}>Customer Success</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickAgentSelect("priya@support.bpo")}
-                  style={{ padding: "8px", borderRadius: "6px", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", fontSize: "11px", textAlign: "left", cursor: "pointer" }}
-                >
-                  <strong style={{ display: "block", color: "#0f172a" }}>Priya Patel</strong>
-                  <span style={{ color: "#7c3aed" }}>Escalations Lead</span>
-                </button>
-              </div>
-            </div>
 
           </div>
         </main>

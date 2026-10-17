@@ -9,7 +9,7 @@ import Chat from "./models/Chat.js";
 import CannedMacro from "./models/CannedMacro.js";
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = process.env.HOSTNAME || "localhost";
+const hostname = process.env.HOSTNAME || "0.0.0.0";
 const port = parseInt(process.env.PORT || "3001", 10);
 
 const app = next({ dev, hostname, port });
@@ -105,7 +105,8 @@ app.prepare().then(async () => {
   const io = new Server(httpServer, {
     cors: {
       origin: "*",
-      methods: ["GET", "POST"]
+      methods: ["GET", "POST"],
+      allowedHeaders: ["ngrok-skip-browser-warning", "Content-Type", "Authorization"]
     }
   });
 
@@ -124,6 +125,7 @@ app.prepare().then(async () => {
       }
 
       if (agent) {
+        console.log(`> [Socket] Agent registered: ${agent.name} (${agent.id}) on socket ${socket.id}`);
         if (agent.status === "terminated") {
           socket.emit("agent_session_terminated", {
             reason: agent.terminationReason || "Your account has been deactivated by administration."
@@ -135,7 +137,7 @@ app.prepare().then(async () => {
         if (agent.activeChatId && (!liveChats[agent.activeChatId] || liveChats[agent.activeChatId].status !== "active")) {
           agent.activeChatId = null;
         }
-        if (!agent.activeChatId && agent.status !== "terminated") {
+        if (status === "available" || !agent.activeChatId) {
           agent.status = status || "available";
         }
         socket.join("agents_room");
@@ -144,13 +146,30 @@ app.prepare().then(async () => {
         broadcastAgentList(io);
         broadcastMetrics(io);
 
-        // Send any pending waiting broadcasts
-        if (agent.status === "available") {
-          const waitingList = Object.values(liveChats).filter(c => c.status === "waiting");
-          waitingList.forEach(chat => {
-            socket.emit("incoming_chat_broadcast", chat);
-          });
+        // If agent already has an active ongoing chat, restore it to client
+        let activeChatForAgent = null;
+        if (agent.activeChatId && liveChats[agent.activeChatId]?.status === "active") {
+          activeChatForAgent = liveChats[agent.activeChatId];
+        } else {
+          activeChatForAgent = Object.values(liveChats).find(
+            c => c.status === "active" && c.assignedAgent?.id === agent.id
+          );
         }
+
+        if (activeChatForAgent) {
+          const cId = activeChatForAgent.chatId || activeChatForAgent.id;
+          agent.activeChatId = cId;
+          agent.status = "in_chat";
+          socket.join(`chat_${cId}`);
+          socket.emit("chat_accept_success", { chat: activeChatForAgent });
+          console.log(`> [Socket] Auto-restored active chat ${cId} for agent ${agent.name}`);
+        }
+
+        // Send any pending waiting broadcasts
+        const waitingList = Object.values(liveChats).filter(c => c.status === "waiting");
+        waitingList.forEach(chat => {
+          socket.emit("incoming_chat_broadcast", chat);
+        });
       }
     });
 
@@ -183,6 +202,22 @@ app.prepare().then(async () => {
     });
 
     // ------------------------------------
+    // AGENT REGISTERS FCM TOKEN (MOBILE APP)
+    // ------------------------------------
+    socket.on("agent_register_fcm_token", async ({ agentId, fcmToken }) => {
+      try {
+        const agent = liveAgents[agentId] || Object.values(liveAgents).find(a => a.id === agentId);
+        if (agent) {
+          agent.fcmToken = fcmToken;
+        }
+        await User.updateOne({ _id: agentId }, { fcmToken });
+        console.log(`> [FCM] Registered mobile push token for agent: ${agentId}`);
+      } catch (err) {
+        console.error("> [FCM] Error saving token:", err.message);
+      }
+    });
+
+    // ------------------------------------
     // CUSTOMER INITIATES CHAT REQUEST
     // ------------------------------------
     socket.on("customer_request_chat", async ({ customerName, customerEmail, customerPhone, phone, department, subject, initialMessage }) => {
@@ -191,6 +226,7 @@ app.prepare().then(async () => {
 
       const newChat = {
         id: chatId,
+        chatId: chatId,
         customer: {
           id: customerId,
           name: customerName || "Customer",
@@ -249,6 +285,9 @@ app.prepare().then(async () => {
           io.to(freeAgent.socketId).emit("incoming_chat_broadcast", newChat);
         }
       });
+      // Also broadcast to agents_room room to ensure all active agent sockets receive the ticket
+      io.to("agents_room").emit("incoming_chat_broadcast", newChat);
+      console.log(`> [Socket] Broadcasted new customer inquiry ${chatId} to ${freeAgents.length} free agents and agents_room`);
 
       broadcastMetrics(io);
     });
@@ -337,6 +376,24 @@ app.prepare().then(async () => {
 
       broadcastAgentList(io);
       broadcastMetrics(io);
+    });
+
+    // ------------------------------------
+    // AGENT RESUMES ONGOING ACTIVE CHAT
+    // ------------------------------------
+    socket.on("agent_resume_chat", ({ agentId, chatId }) => {
+      let chat = chatId ? liveChats[chatId] : null;
+      if (!chat) {
+        chat = Object.values(liveChats).find(
+          c => c.status === "active" && (c.assignedAgent?.id === agentId || c.chatId === chatId || c.id === chatId)
+        );
+      }
+      if (chat && chat.status === "active") {
+        const cId = chat.chatId || chat.id;
+        socket.join(`chat_${cId}`);
+        socket.emit("chat_accept_success", { chat });
+        console.log(`> [Socket] Agent ${agentId} reconnected/resumed active chat ${cId}`);
+      }
     });
 
     // ------------------------------------
@@ -494,6 +551,47 @@ app.prepare().then(async () => {
         const dbChats = await Chat.find().sort({ createdAt: -1 }).limit(100);
         const dbAgents = await User.find({ role: "agent" });
         const dbCanned = await CannedMacro.find().sort({ createdAt: -1 });
+
+        // Synchronize in-memory liveAgents with actual MongoDB state
+        const dbAgentIds = new Set(dbAgents.map(a => a._id.toString()));
+        for (const id of Object.keys(liveAgents)) {
+          if (!dbAgentIds.has(id)) {
+            delete liveAgents[id];
+          }
+        }
+        dbAgents.forEach((ag) => {
+          const id = ag._id.toString();
+          if (!liveAgents[id]) {
+            liveAgents[id] = {
+              id,
+              email: ag.email,
+              name: ag.name,
+              role: ag.designation || ag.role,
+              department: ag.department || "General",
+              avatar: ag.avatar,
+              status: ag.status || "available",
+              terminatedAt: ag.terminatedAt ? ag.terminatedAt.toISOString() : null,
+              terminationReason: ag.terminationReason || null,
+              socketId: null,
+              activeChatId: null,
+              stats: ag.stats || { resolvedToday: 0, avgRating: 5.0 },
+              createdAt: ag.createdAt ? ag.createdAt.toISOString() : null
+            };
+          } else {
+            liveAgents[id].name = ag.name;
+            liveAgents[id].email = ag.email;
+            liveAgents[id].role = ag.designation || ag.role;
+            liveAgents[id].department = ag.department || "General";
+            if (ag.status === "terminated") {
+              liveAgents[id].status = "terminated";
+              liveAgents[id].terminatedAt = ag.terminatedAt ? ag.terminatedAt.toISOString() : null;
+              liveAgents[id].terminationReason = ag.terminationReason || null;
+            }
+          }
+        });
+
+        broadcastAgentList(io);
+        broadcastMetrics(io);
 
         socket.emit("admin_overview_data", {
           chats: dbChats.map(c => ({
@@ -865,7 +963,7 @@ app.prepare().then(async () => {
     });
   });
 
-  httpServer.listen(port, () => {
-    console.log(`> BPO Chat Support System ready on http://${hostname}:${port}`);
+  httpServer.listen(port, "0.0.0.0", () => {
+    console.log(`> BPO Chat Support System ready on port ${port} (Local: http://localhost:${port} | Wi-Fi: http://192.168.1.46:${port})`);
   });
 });

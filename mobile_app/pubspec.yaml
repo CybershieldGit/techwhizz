@@ -1,0 +1,56 @@
+name: omniflow_agent
+description: OmniFlow BPO Agent Mobile App — Real-time customer support dispatch.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Socket.io real-time communication
+  socket_io_client: ^2.0.3+1
+
+  # HTTP REST calls (login)
+  http: ^1.2.2
+
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_messaging: ^15.2.4
+
+  # Local notifications (heads-up alerts, custom sound)
+  flutter_local_notifications: ^18.0.1
+
+  # Persistent session storage
+  shared_preferences: ^2.3.5
+
+  # State management
+  provider: ^6.1.5
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Date/time formatting
+  intl: ^0.19.0
+
+  # Cached network images (agent avatars)
+  cached_network_image: ^3.4.1
+
+  # Animations
+  flutter_animate: ^4.5.2
+
+  # Material icons
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/sounds/

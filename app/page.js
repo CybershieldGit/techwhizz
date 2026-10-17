@@ -20,6 +20,7 @@ export default function CustomerHome() {
     const onDisconnect = () => setIsConnected(false);
 
     const onMetricsUpdate = (metrics) => {
+      setIsConnected(true);
       if (metrics) {
         setAvailableCount(metrics.availableAgents || 0);
       }
@@ -44,28 +45,29 @@ export default function CustomerHome() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "var(--bg-primary)" }}>
       
       {/* CLEAN LIGHT THEME CUSTOMER HEADER */}
-      <header className="glass-nav" style={{ position: "sticky", top: 0, zIndex: 50, padding: "14px 24px" }}>
-        <div style={{ maxWidth: "880px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <header className="customer-page-header glass-nav" style={{ position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ maxWidth: "880px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
           
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
             <div style={{
-              width: "38px",
-              height: "38px",
+              width: "36px",
+              height: "36px",
               borderRadius: "10px",
               background: "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)"
+              boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+              flexShrink: 0
             }}>
-              <MessageSquare size={20} color="#ffffff" />
+              <MessageSquare size={18} color="#ffffff" />
             </div>
-            <div>
-              <h1 style={{ fontSize: "16px", fontWeight: "800", color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
-                Live Customer Support
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ fontSize: "15px", fontWeight: "800", color: "var(--text-primary)", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                Live Support
               </h1>
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-                Fast 1-on-1 Help & Inquiry Resolution
+              <p style={{ fontSize: "11px", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                1-on-1 Assistance Desk
               </p>
             </div>
           </div>
@@ -74,17 +76,18 @@ export default function CustomerHome() {
           <div style={{
             display: "flex",
             alignItems: "center",
-            gap: "8px",
-            fontSize: "12px",
-            padding: "5px 12px",
+            gap: "6px",
+            fontSize: "11px",
+            padding: "4px 10px",
             borderRadius: "20px",
             backgroundColor: "#ffffff",
             border: "1px solid var(--border-color)",
-            boxShadow: "var(--shadow-sm)"
+            boxShadow: "var(--shadow-sm)",
+            flexShrink: 0
           }}>
-            <span className={`status-indicator ${isConnected ? "status-available" : "status-offline"}`} />
-            <span style={{ color: isConnected ? "#059669" : "var(--text-muted)", fontWeight: "600" }}>
-              {isConnected ? `${availableCount > 0 ? availableCount : "Agents"} Online` : "Connecting..."}
+            <span className={`status-indicator ${isConnected ? "status-available" : "status-offline"}`} style={{ width: "8px", height: "8px" }} />
+            <span style={{ color: isConnected ? "#059669" : "var(--text-muted)", fontWeight: "700" }}>
+              {isConnected ? `${availableCount > 0 ? availableCount : "Agents"} Online` : "Connecting"}
             </span>
           </div>
 
@@ -92,15 +95,15 @@ export default function CustomerHome() {
       </header>
 
       {/* MAIN CUSTOMER CHAT INTERFACE */}
-      <main style={{ flex: 1, padding: "24px 0 40px 0" }}>
+      <main style={{ flex: 1, padding: "8px 0 24px 0" }}>
         <CustomerChat socket={socket} />
       </main>
 
       {/* DISCRETE FOOTER */}
       <footer style={{
-        padding: "16px 24px",
+        padding: "14px 16px",
         textAlign: "center",
-        fontSize: "12px",
+        fontSize: "11px",
         color: "var(--text-muted)",
         borderTop: "1px solid var(--border-color)",
         backgroundColor: "rgba(255, 255, 255, 0.8)",
@@ -108,13 +111,14 @@ export default function CustomerHome() {
         alignItems: "center",
         justifyContent: "space-between",
         flexWrap: "wrap",
-        gap: "12px",
+        gap: "10px",
         maxWidth: "880px",
         margin: "0 auto",
-        width: "100%"
+        width: "100%",
+        boxSizing: "border-box"
       }}>
         <span>© Support Services • Secure Live Messaging</span>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
           <Link
             href="/support"
             style={{
@@ -122,17 +126,17 @@ export default function CustomerHome() {
               textDecoration: "none",
               display: "inline-flex",
               alignItems: "center",
-              gap: "5px",
-              fontSize: "12px",
+              gap: "4px",
+              fontSize: "11px",
               fontWeight: "600",
-              padding: "4px 10px",
+              padding: "4px 8px",
               borderRadius: "6px",
               backgroundColor: "rgba(37, 99, 235, 0.08)",
               border: "1px solid rgba(37, 99, 235, 0.15)"
             }}
           >
-            <Headphones size={13} />
-            Support Desk (/support)
+            <Headphones size={12} />
+            Support Desk
           </Link>
           <Link
             href="/admin"
@@ -141,17 +145,17 @@ export default function CustomerHome() {
               textDecoration: "none",
               display: "inline-flex",
               alignItems: "center",
-              gap: "5px",
-              fontSize: "12px",
+              gap: "4px",
+              fontSize: "11px",
               fontWeight: "600",
-              padding: "4px 10px",
+              padding: "4px 8px",
               borderRadius: "6px",
               backgroundColor: "#f5f3ff",
               border: "1px solid #ddd6fe"
             }}
           >
-            <Shield size={13} />
-            Admin Panel (/admin)
+            <Shield size={12} />
+            Admin
           </Link>
         </div>
       </footer>

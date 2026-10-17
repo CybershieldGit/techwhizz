@@ -15,6 +15,7 @@ const UserSchema = new mongoose.Schema(
     terminationReason: { type: String, default: null },
     activeChatId: { type: String, default: null },
     socketId: { type: String, default: null },
+    fcmToken: { type: String, default: null },
     stats: {
       resolvedToday: { type: Number, default: 0 },
       avgRating: { type: Number, default: 5.0 },
