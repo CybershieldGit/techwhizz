@@ -18,16 +18,44 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // ── Firebase Admin FCM Push Notification Service ──────────
 let firebaseMessaging = null;
 try {
-  const serviceAccountPath = path.join(__dirname, "firebase-service-account.json");
-  if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
+  let serviceAccount = null;
+
+  // 1. Check for environment variable (Render / Cloud deployment)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try {
+      const raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+      serviceAccount = raw.startsWith("{")
+        ? JSON.parse(raw)
+        : JSON.parse(Buffer.from(raw, "base64").toString("utf8"));
+      console.log("> [Firebase] Loaded credentials from FIREBASE_SERVICE_ACCOUNT env variable.");
+    } catch (e) {
+      console.error("> [Firebase] Failed to parse FIREBASE_SERVICE_ACCOUNT env:", e.message);
+    }
+  }
+
+  // 2. Check local project file
+  const localPath = path.join(__dirname, "firebase-service-account.json");
+  // 3. Check Render secret file path
+  const renderSecretPath = "/etc/secrets/firebase-service-account.json";
+
+  if (!serviceAccount) {
+    if (fs.existsSync(localPath)) {
+      serviceAccount = JSON.parse(fs.readFileSync(localPath, "utf8"));
+      console.log("> [Firebase] Loaded credentials from local file:", localPath);
+    } else if (fs.existsSync(renderSecretPath)) {
+      serviceAccount = JSON.parse(fs.readFileSync(renderSecretPath, "utf8"));
+      console.log("> [Firebase] Loaded credentials from Render secret file:", renderSecretPath);
+    }
+  }
+
+  if (serviceAccount) {
     const fbApp = getApps().length > 0
       ? getApps()[0]
       : initializeApp({ credential: cert(serviceAccount) });
     firebaseMessaging = getMessaging(fbApp);
     console.log("> [Firebase] FCM Push Notifications initialized successfully.");
   } else {
-    console.warn(`> [Firebase] Service account not found at ${serviceAccountPath}; push disabled.`);
+    console.warn(`> [Firebase] No service account found (checked FIREBASE_SERVICE_ACCOUNT, ${localPath}, and ${renderSecretPath}); push disabled.`);
   }
 } catch (err) {
   console.error("> [Firebase] Push initialization error:", err.message);
