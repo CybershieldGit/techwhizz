@@ -155,6 +155,7 @@ class FcmService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
+      tag: chatId.isNotEmpty ? chatId : null,
       color: const Color(0xFF1B3B8B),
       icon: '@mipmap/ic_launcher',
       styleInformation: BigTextStyleInformation(body),

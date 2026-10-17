@@ -1,9 +1,11 @@
 import { createServer } from "node:http";
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import next from "next";
 import { Server } from "socket.io";
 import bcrypt from "bcryptjs";
-import { initializeApp, cert } from "firebase-admin/app";
+import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 import { connectDB } from "./lib/db.js";
 import { initDatabase } from "./lib/seed.js";
@@ -11,26 +13,35 @@ import User from "./models/User.js";
 import Chat from "./models/Chat.js";
 import CannedMacro from "./models/CannedMacro.js";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 // ── Firebase Admin FCM Push Notification Service ──────────
 let firebaseMessaging = null;
 try {
-  const serviceAccountPath = "./firebase-service-account.json";
+  const serviceAccountPath = path.join(__dirname, "firebase-service-account.json");
   if (fs.existsSync(serviceAccountPath)) {
     const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
-    const fbApp = initializeApp({
-      credential: cert(serviceAccount)
-    });
+    const fbApp = getApps().length > 0
+      ? getApps()[0]
+      : initializeApp({ credential: cert(serviceAccount) });
     firebaseMessaging = getMessaging(fbApp);
     console.log("> [Firebase] FCM Push Notifications initialized successfully.");
   } else {
-    console.log("> [Firebase] firebase-service-account.json not found; push notifications disabled.");
+    console.warn(`> [Firebase] Service account not found at ${serviceAccountPath}; push disabled.`);
   }
 } catch (err) {
   console.error("> [Firebase] Push initialization error:", err.message);
 }
 
 async function sendAgentPushNotification(fcmToken, { title, body, chatId }) {
-  if (!firebaseMessaging || !fcmToken) return;
+  if (!firebaseMessaging) {
+    console.warn("> [FCM Warning] firebaseMessaging is not initialized; cannot send push.");
+    return;
+  }
+  if (!fcmToken) {
+    console.warn("> [FCM Warning] Token is empty; skipping push.");
+    return;
+  }
   try {
     const message = {
       token: fcmToken,
@@ -415,24 +426,24 @@ app.prepare().then(async () => {
         });
         const tokens = new Set();
         dbAgents.forEach(ag => {
-          if (ag.status !== "break" && ag.fcmToken) {
+          if (ag.fcmToken) {
             tokens.add(ag.fcmToken);
           }
         });
         Object.values(liveAgents).forEach(ag => {
-          if (ag.status !== "terminated" && ag.status !== "break" && ag.fcmToken) {
+          if (ag.status !== "terminated" && ag.fcmToken) {
             tokens.add(ag.fcmToken);
           }
         });
 
         console.log(`> [Push] Sending incoming chat notification for ${chatId} to ${tokens.size} agent device(s)`);
-        tokens.forEach(token => {
-          sendAgentPushNotification(token, {
+        for (const token of tokens) {
+          await sendAgentPushNotification(token, {
             title: `🔔 New Support Chat: ${newChat.customer.name}`,
             body: `${newChat.subject || "Customer Inquiry"} - "${(newChat.initialMessage || "").slice(0, 80)}"`,
             chatId: chatId
           });
-        });
+        }
       } catch (pushErr) {
         console.error("> [Push Error]:", pushErr.message);
       }
@@ -570,20 +581,38 @@ app.prepare().then(async () => {
 
       io.to(`chat_${chatId}`).emit("new_message", { chatId, message });
 
-      // ── Push Notification via FCM to assigned agent if customer sent message ──
-      if (sender === "customer" && chat.assignedAgent?.id) {
+      // ── Push Notification via FCM to assigned agent or queue if customer sent message ──
+      if (sender === "customer") {
         try {
-          let token = liveAgents[chat.assignedAgent.id]?.fcmToken;
-          if (!token) {
-            const dbAg = await User.findById(chat.assignedAgent.id);
-            token = dbAg?.fcmToken;
-          }
-          if (token) {
-            sendAgentPushNotification(token, {
-              title: `💬 ${senderName || "Customer"}`,
-              body: text || "Sent a message",
-              chatId: chatId
+          if (chat.assignedAgent?.id) {
+            let token = liveAgents[chat.assignedAgent.id]?.fcmToken;
+            if (!token) {
+              const dbAg = await User.findById(chat.assignedAgent.id);
+              token = dbAg?.fcmToken;
+            }
+            if (token) {
+              await sendAgentPushNotification(token, {
+                title: `💬 ${senderName || "Customer"}`,
+                body: text || "Sent a message",
+                chatId: chatId
+              });
+            }
+          } else {
+            // Customer is still in queue waiting for an agent
+            const dbAgents = await User.find({
+              role: "agent",
+              fcmToken: { $exists: true, $ne: null },
+              status: { $ne: "terminated" }
             });
+            for (const ag of dbAgents) {
+              if (ag.fcmToken) {
+                await sendAgentPushNotification(ag.fcmToken, {
+                  title: `💬 ${senderName || "Customer"} (Waiting)`,
+                  body: text || "Customer sent a message",
+                  chatId: chatId
+                });
+              }
+            }
           }
         } catch (mPushErr) {
           console.error("> [Push Error msg]:", mPushErr.message);

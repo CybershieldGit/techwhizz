@@ -37,6 +37,8 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
   Timer? _connectTimeoutTimer;
   bool _hasTimedOut = false;
 
+  int _lastMessageCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -75,13 +77,18 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
     context.read<AgentProvider>().sendTyping(isTyping);
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool animate = true}) {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent + 80,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      final target = _scrollController.position.maxScrollExtent;
+      if (animate) {
+        _scrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutQuad,
+        );
+      } else {
+        _scrollController.jumpTo(target);
+      }
     }
   }
 
@@ -122,7 +129,9 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
       _inputController.clear();
     }
 
-    Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom(animate: true);
+    });
   }
 
   Widget _buildMessageBubble(MessageModel message) {
@@ -293,10 +302,24 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
 
     final customer = chat.customer;
 
-    // Trigger auto scroll when new messages arrive
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom();
-    });
+    // Trigger auto scroll ONLY when message count changes (not on every typing/keyboard rebuild)
+    if (provider.messages.length != _lastMessageCount) {
+      final isInitialLoad = _lastMessageCount == 0;
+      _lastMessageCount = provider.messages.length;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          if (isInitialLoad) {
+            _scrollToBottom(animate: false);
+          } else {
+            // Check if user is scrolled far up to read history; if so, don't jerk screen down
+            final isNearBottom = (_scrollController.position.maxScrollExtent - _scrollController.offset) < 180;
+            if (isNearBottom) {
+              _scrollToBottom(animate: true);
+            }
+          }
+        }
+      });
+    }
 
     return PopScope(
       canPop: false,
