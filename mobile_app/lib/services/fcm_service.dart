@@ -12,9 +12,10 @@ import 'package:flutter/material.dart';
 // Top-level background handler (must be top-level function, not a class method)
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // No need to init Firebase here since it's already done in main.
-  // Just show a local notification:
-  await FcmService._showLocalNotification(message);
+  // If Android OS did not display a notification payload, show via local notifications:
+  if (message.notification == null) {
+    await FcmService._showLocalNotification(message);
+  }
 }
 
 class FcmService {
@@ -29,6 +30,7 @@ class FcmService {
   // ── Initialize ────────────────────────────────────────────
   static Future<void> initialize({
     required void Function(String chatId) onNotificationTap,
+    void Function(String token)? onTokenRefresh,
   }) async {
     // 1. Android notification channel (high importance + sound)
     const androidChannel = AndroidNotificationChannel(
@@ -38,6 +40,7 @@ class FcmService {
       importance: Importance.max,
       playSound: true,
       enableVibration: true,
+      showBadge: true,
     );
 
     await _localNotifications
@@ -96,7 +99,13 @@ class FcmService {
       _showLocalNotification(message);
     });
 
-    // 6. Handle notification tap when app is in background (not killed)
+    // 8. Listen for token refresh and sync immediately
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      debugPrint('> [FCM] Token refreshed: $newToken');
+      onTokenRefresh?.call(newToken);
+    });
+
+    // 9. Handle notification tap when app is in background (not killed)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       final chatId = message.data['chatId'];
       if (chatId != null && chatId.toString().isNotEmpty) {
@@ -104,7 +113,7 @@ class FcmService {
       }
     });
 
-    // 7. Handle notification tap when app was killed
+    // 10. Handle notification tap when app was killed
     final initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) {
       final chatId = initialMessage.data['chatId'];

@@ -12,6 +12,8 @@ import 'core/router.dart';
 import 'core/theme.dart';
 import 'providers/agent_provider.dart';
 import 'services/fcm_service.dart';
+import 'services/auth_service.dart';
+import 'services/socket_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +28,12 @@ void main() async {
         if (routerContext != null) {
           final id = chatId.replaceFirst('chat_', '');
           routerContext.push('/chat/$id');
+        }
+      },
+      onTokenRefresh: (newToken) async {
+        final agent = await AuthService.loadSavedSession();
+        if (agent != null) {
+          SocketService.registerFcmToken(agent.id, newToken);
         }
       },
     );

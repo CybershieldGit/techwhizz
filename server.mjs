@@ -40,21 +40,26 @@ async function sendAgentPushNotification(fcmToken, { title, body, chatId }) {
       },
       data: {
         chatId: String(chatId || ""),
+        title: String(title || ""),
+        body: String(body || ""),
         click_action: "FLUTTER_NOTIFICATION_CLICK"
       },
       android: {
         priority: "high",
+        ttl: 3600 * 1000, // 1 hour TTL: instant direct delivery
         notification: {
           channelId: "omniflow_incoming",
           sound: "default",
-          priority: "high",
+          priority: "max",
           defaultSound: true,
-          defaultVibrateTimings: true
+          defaultVibrateTimings: true,
+          visibility: "public",
+          tag: chatId ? String(chatId) : undefined
         }
       }
     };
     const response = await firebaseMessaging.send(message);
-    console.log(`> [FCM] Push sent to token ${fcmToken.slice(0, 10)}... (ID: ${response})`);
+    console.log(`> [FCM] High-priority push sent to token ${fcmToken.slice(0, 10)}... (ID: ${response})`);
   } catch (err) {
     console.error(`> [FCM] Push send error:`, err.message);
   }
