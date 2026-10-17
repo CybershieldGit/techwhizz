@@ -247,56 +247,94 @@ export default function SupportPortal() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "var(--bg-primary)" }}>
       
       {/* SUPPORT TEAM DEDICATED LIGHT HEADER */}
-      <header className="glass-nav" style={{ position: "sticky", top: 0, zIndex: 50, padding: "12px 24px" }}>
-        <div style={{ maxWidth: "1400px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+      <header className="glass-nav support-portal-header">
+        <div className="support-header-inner">
           
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            <div style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)"
-            }}>
-              <Headphones size={22} color="#ffffff" />
+          {/* Top Brand Row */}
+          <div className="support-brand-row">
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "12px",
+                background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)",
+                flexShrink: 0
+              }}>
+                <Headphones size={20} color="#ffffff" />
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <h1 style={{ fontSize: "17px", fontWeight: "800", color: "#0f172a", letterSpacing: "-0.02em" }}>
+                    BPO Support Console
+                  </h1>
+                  <span style={{
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    textTransform: "uppercase",
+                    padding: "2px 7px",
+                    borderRadius: "6px",
+                    backgroundColor: "#ecfdf5",
+                    color: "#059669",
+                    border: "1px solid #a7f3d0"
+                  }}>
+                    LIVE
+                  </span>
+                </div>
+                <p style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
+                  First-to-Claim Queue Dispatch
+                </p>
+              </div>
             </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <h1 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", letterSpacing: "-0.02em" }}>
-                  BPO Support Team Console
-                </h1>
-                <span style={{
-                  fontSize: "11px",
-                  fontWeight: "700",
-                  textTransform: "uppercase",
-                  padding: "2px 8px",
-                  borderRadius: "6px",
-                  backgroundColor: "#ecfdf5",
-                  color: "#059669",
-                  border: "1px solid #a7f3d0"
-                }}>
-                  /support
+
+            {/* Mobile Agent Quick Avatar & Logout */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "4px 8px",
+                borderRadius: "8px",
+                backgroundColor: "#ffffff",
+                border: "1px solid var(--border-color)",
+                boxShadow: "var(--shadow-sm)"
+              }}>
+                <img
+                  src={agentSession.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50"}
+                  alt={agentSession.name}
+                  style={{ width: "22px", height: "22px", borderRadius: "50%", objectFit: "cover" }}
+                />
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#0f172a", maxWidth: "90px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {agentSession.name.split(" ")[0]}
                 </span>
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-                First-to-Claim Incoming Query Broadcast Center
-              </p>
+
+              <button
+                onClick={handleAgentLogout}
+                title="Sign Out"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "8px",
+                  backgroundColor: "#fff1f2",
+                  border: "1px solid #fecdd3",
+                  color: "#e11d48",
+                  cursor: "pointer"
+                }}
+              >
+                <LogOut size={14} />
+              </button>
             </div>
           </div>
 
-          {/* Console Tabs */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            backgroundColor: "#f1f5f9",
-            padding: "4px",
-            borderRadius: "10px",
-            border: "1px solid var(--border-color)",
-            gap: "4px"
-          }}>
+          {/* Console Tabs (Agent Desk vs Fleet Supervisor) */}
+          <div className="support-tabs-group">
             <button
               onClick={() => setActiveTab("workspace")}
               style={{
@@ -313,7 +351,7 @@ export default function SupportPortal() {
               }}
             >
               <Headphones size={15} />
-              Agent Desk
+              <span>Agent Desk</span>
               {metrics?.waitingChats > 0 && (
                 <span style={{
                   backgroundColor: "var(--accent-rose)",
@@ -344,58 +382,12 @@ export default function SupportPortal() {
               }}
             >
               <BarChart3 size={15} />
-              Fleet Supervisor
+              <span>Fleet Supervisor</span>
             </button>
           </div>
 
-          {/* Right section: Agent Identity, Logout, Cross-portal links */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            
-            {/* Authenticated Agent Badge */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "5px 12px",
-              borderRadius: "8px",
-              backgroundColor: "#ffffff",
-              border: "1px solid var(--border-color)",
-              boxShadow: "var(--shadow-sm)"
-            }}>
-              <img
-                src={agentSession.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50"}
-                alt={agentSession.name}
-                style={{ width: "24px", height: "24px", borderRadius: "50%", objectFit: "cover" }}
-              />
-              <div style={{ textAlign: "left" }}>
-                <span style={{ fontSize: "12px", fontWeight: "700", color: "#0f172a", display: "block", lineHeight: "1.2" }}>
-                  {agentSession.name}
-                </span>
-                <span style={{ fontSize: "10px", color: "#059669", fontWeight: "600" }}>{agentSession.department}</span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleAgentLogout}
-              title="Sign Out"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                padding: "7px 10px",
-                borderRadius: "8px",
-                backgroundColor: "#fff1f2",
-                border: "1px solid #fecdd3",
-                color: "#e11d48",
-                fontSize: "12px",
-                fontWeight: "600",
-                cursor: "pointer"
-              }}
-            >
-              <LogOut size={13} />
-              Sign Out
-            </button>
-
+          {/* Quick Cross-Portal Switcher Links */}
+          <div className="support-nav-actions">
             <Link
               href="/"
               target="_blank"
@@ -403,18 +395,19 @@ export default function SupportPortal() {
                 display: "flex",
                 alignItems: "center",
                 gap: "5px",
-                padding: "7px 12px",
-                borderRadius: "8px",
+                padding: "5px 10px",
+                borderRadius: "6px",
                 backgroundColor: "#ffffff",
                 border: "1px solid var(--border-color)",
                 color: "var(--accent-blue)",
-                fontSize: "12px",
+                fontSize: "11px",
                 fontWeight: "600",
+                textDecoration: "none",
                 boxShadow: "var(--shadow-sm)"
               }}
             >
-              <MessageSquare size={13} />
-              User (/)
+              <MessageSquare size={12} />
+              <span>Customer Portal (/)</span>
             </Link>
 
             <Link
@@ -424,18 +417,19 @@ export default function SupportPortal() {
                 display: "flex",
                 alignItems: "center",
                 gap: "5px",
-                padding: "7px 12px",
-                borderRadius: "8px",
+                padding: "5px 10px",
+                borderRadius: "6px",
                 backgroundColor: "#f5f3ff",
                 border: "1px solid #ddd6fe",
                 color: "#7c3aed",
-                fontSize: "12px",
+                fontSize: "11px",
                 fontWeight: "600",
+                textDecoration: "none",
                 boxShadow: "var(--shadow-sm)"
               }}
             >
-              <ShieldCheck size={13} />
-              Admin (/admin)
+              <ShieldCheck size={12} />
+              <span>Admin Portal (/admin)</span>
             </Link>
           </div>
 

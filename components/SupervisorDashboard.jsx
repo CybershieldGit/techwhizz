@@ -11,7 +11,7 @@ export default function SupervisorDashboard({ agentsList, metrics }) {
     <div style={{ maxWidth: "1280px", margin: "16px auto", padding: "0 16px" }}>
       
       {/* Top Banner */}
-      <div className="glass-panel" style={{ padding: "24px 28px", marginBottom: "20px", backgroundColor: "#ffffff" }}>
+      <div className="glass-panel supervisor-banner" style={{ padding: "24px 28px", marginBottom: "20px", backgroundColor: "#ffffff" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
           <div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", backgroundColor: "#faf5ff", padding: "4px 12px", borderRadius: "20px", color: "#7e22ce", fontSize: "12px", fontWeight: "700", marginBottom: "6px", border: "1px solid #e9d5ff" }}>
@@ -26,7 +26,7 @@ export default function SupervisorDashboard({ agentsList, metrics }) {
             </p>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Dispatch Protocol:</span>
             <span style={{ fontSize: "12px", fontWeight: "700", padding: "6px 14px", borderRadius: "8px", backgroundColor: "#ecfdf5", color: "#059669", border: "1px solid #a7f3d0" }}>
               ⚡ Parallel Broadcast (First Claim Wins)
@@ -36,7 +36,7 @@ export default function SupervisorDashboard({ agentsList, metrics }) {
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px", marginBottom: "20px" }}>
+      <div className="supervisor-kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px", marginBottom: "20px" }}>
         
         <div className="glass-panel" style={{ padding: "20px", backgroundColor: "#ffffff" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
@@ -101,7 +101,7 @@ export default function SupervisorDashboard({ agentsList, metrics }) {
           Support Agent Fleet Status
         </h3>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "16px" }}>
           {agentsList?.map((ag) => {
             const isAvailable = ag.status === "available";
             const isInChat = ag.status === "in_chat";

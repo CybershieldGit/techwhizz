@@ -82,6 +82,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
   // Agent notes
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
+  const [showMobileDossier, setShowMobileDossier] = useState(false);
 
   // Resolution modal state
   const [showResolveModal, setShowResolveModal] = useState(false);
@@ -194,6 +195,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
     const handleChatAcceptSuccess = ({ chat }) => {
       sound.stopRingingAlert();
       setActiveChat(chat);
+      setShowMobileDossier(false);
       setMessages(chat.messages || []);
       setNotes(chat.notes || []);
       setIncomingBroadcasts((prev) => {
@@ -434,8 +436,8 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
       )}
 
       {/* AGENT ROSTER / QUICK SWITCHER BAR */}
-      <div className="glass-panel" style={{ padding: "16px 20px", marginBottom: "20px", backgroundColor: "#ffffff" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+      <div className="glass-panel agent-identity-panel" style={{ padding: "16px 20px", marginBottom: "20px", backgroundColor: "#ffffff" }}>
+        <div className="agent-identity-top-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
           
           <div>
             <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "var(--text-muted)", letterSpacing: "0.05em" }}>
@@ -651,45 +653,46 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
               <span>{isAudioMuted ? "Muted" : "Sound ON"}</span>
             </button>
 
-            <div style={{ width: "1px", height: "24px", backgroundColor: "#e2e8f0", margin: "0 2px" }} />
-
-            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Availability:</span>
-            <button
-              onClick={() => handleStatusChange("available")}
-              disabled={activeChat !== null}
-              style={{
-                fontSize: "12px",
-                fontWeight: "700",
-                padding: "8px 14px",
-                borderRadius: "8px",
-                backgroundColor: currentAgent?.status === "available" ? "#ecfdf5" : "#ffffff",
-                color: currentAgent?.status === "available" ? "#059669" : "var(--text-secondary)",
-                border: currentAgent?.status === "available" ? "1px solid #10b981" : "1px solid #cbd5e1",
-                boxShadow: "var(--shadow-sm)",
-                opacity: activeChat !== null ? 0.5 : 1,
-                cursor: activeChat !== null ? "not-allowed" : "pointer"
-              }}
-            >
-              🟢 Free (Available)
-            </button>
-            <button
-              onClick={() => handleStatusChange("busy")}
-              disabled={activeChat !== null}
-              style={{
-                fontSize: "12px",
-                fontWeight: "700",
-                padding: "8px 14px",
-                borderRadius: "8px",
-                backgroundColor: currentAgent?.status === "busy" ? "#fffbeb" : "#ffffff",
-                color: currentAgent?.status === "busy" ? "#d97706" : "var(--text-secondary)",
-                border: currentAgent?.status === "busy" ? "1px solid #f59e0b" : "1px solid #cbd5e1",
-                boxShadow: "var(--shadow-sm)",
-                opacity: activeChat !== null ? 0.5 : 1,
-                cursor: activeChat !== null ? "not-allowed" : "pointer"
-              }}
-            >
-              🟡 Away / Pause
-            </button>
+            <div className="status-button-group">
+              <button
+                type="button"
+                onClick={() => handleStatusChange("available")}
+                disabled={activeChat !== null}
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  padding: "8px 14px",
+                  borderRadius: "8px",
+                  backgroundColor: currentAgent?.status === "available" ? "#ecfdf5" : "#ffffff",
+                  color: currentAgent?.status === "available" ? "#059669" : "var(--text-secondary)",
+                  border: currentAgent?.status === "available" ? "1px solid #10b981" : "1px solid #cbd5e1",
+                  boxShadow: "var(--shadow-sm)",
+                  opacity: activeChat !== null ? 0.5 : 1,
+                  cursor: activeChat !== null ? "not-allowed" : "pointer"
+                }}
+              >
+                🟢 Free (Ready)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStatusChange("busy")}
+                disabled={activeChat !== null}
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  padding: "8px 14px",
+                  borderRadius: "8px",
+                  backgroundColor: currentAgent?.status === "busy" ? "#fffbeb" : "#ffffff",
+                  color: currentAgent?.status === "busy" ? "#d97706" : "var(--text-secondary)",
+                  border: currentAgent?.status === "busy" ? "1px solid #f59e0b" : "1px solid #cbd5e1",
+                  boxShadow: "var(--shadow-sm)",
+                  opacity: activeChat !== null ? 0.5 : 1,
+                  cursor: activeChat !== null ? "not-allowed" : "pointer"
+                }}
+              >
+                🟡 Away / Pause
+              </button>
+            </div>
           </div>
 
         </div>
@@ -703,7 +706,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
             return (
               <div
                 key={chat.id}
-                className="glass-panel broadcast-flash"
+                className="glass-panel broadcast-flash incoming-broadcast-card"
                 style={{
                   padding: "20px 24px",
                   backgroundColor: isConnected ? "#ecfdf5" : "#fffbeb",
@@ -812,22 +815,11 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
                 </div>
 
               {/* FIRST TO ACCEPT BUTTON */}
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", width: "100%" }}>
                 <button
+                  type="button"
+                  className="incoming-broadcast-claim-btn"
                   onClick={() => handleAcceptChat(chat.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "12px 26px",
-                    borderRadius: "10px",
-                    background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
-                    color: "#ffffff",
-                    fontSize: "14px",
-                    fontWeight: "800",
-                    boxShadow: "0 4px 16px rgba(16, 185, 129, 0.4)",
-                    letterSpacing: "0.02em"
-                  }}
                 >
                   <Zap size={18} />
                   ACCEPT CHAT (CLAIM)
@@ -835,29 +827,35 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
               </div>
 
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
+    )}
 
       {/* AGENT WORKSPACE MAIN CONTENT */}
       {activeChat ? (
         /* ACTIVE CHAT WORKSPACE (SPLIT CONSOLE) */
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "20px" }}>
+        <div className="active-chat-console-grid" style={{ display: "grid", gap: "20px" }}>
           
           {/* Main Chat Stream */}
-          <div className="glass-panel" style={{ display: "flex", flexDirection: "column", height: "660px", overflow: "hidden", backgroundColor: "#ffffff" }}>
+          <div
+            className={`glass-panel chat-stream-box ${showMobileDossier ? "mobile-hide-stream" : ""}`}
+            style={{ display: "flex", flexDirection: "column", height: "660px", overflow: "hidden", backgroundColor: "#ffffff" }}
+          >
             
             {/* Header */}
-            <div style={{
+            <div className="chat-header-mobile" style={{
               padding: "16px 20px",
               borderBottom: "1px solid var(--border-color)",
               backgroundColor: "#f8fafc",
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between"
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "10px"
             }}>
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                   <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a" }}>
                     {activeChat.customer.name}
                   </h3>
@@ -889,24 +887,49 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
                 </p>
               </div>
 
-              <button
-                onClick={() => setShowResolveModal(true)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontSize: "12px",
-                  fontWeight: "700",
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  backgroundColor: "#ecfdf5",
-                  color: "#059669",
-                  border: "1px solid #a7f3d0"
-                }}
-              >
-                <CheckCircle2 size={16} />
-                Resolve & Free Agent
-              </button>
+              <div className="chat-header-mobile-actions" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileDossier(true)}
+                  className="mobile-dossier-toggle-btn"
+                  style={{
+                    alignItems: "center",
+                    gap: "6px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    backgroundColor: "#f1f5f9",
+                    color: "#334155",
+                    border: "1px solid #cbd5e1",
+                    cursor: "pointer"
+                  }}
+                >
+                  <FileText size={15} color="#475569" />
+                  <span>Dossier & Notes ({notes.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowResolveModal(true)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    backgroundColor: "#ecfdf5",
+                    color: "#059669",
+                    border: "1px solid #a7f3d0",
+                    cursor: "pointer"
+                  }}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>Resolve & Free</span>
+                </button>
+              </div>
             </div>
 
             {/* Messages Area */}
@@ -1000,7 +1023,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
             </div>
 
             {/* Quick Canned Macros Bar */}
-            <div style={{
+            <div className="canned-macros-bar" style={{
               padding: "10px 16px",
               backgroundColor: "#ffffff",
               borderTop: "1px solid var(--border-color)",
@@ -1043,6 +1066,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
             {/* Input Bar */}
             <form
               onSubmit={handleSendMessage}
+              className="chat-input-form"
               style={{
                 padding: "14px 16px",
                 backgroundColor: "#ffffff",
@@ -1089,7 +1113,35 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
           </div>
 
           {/* Right Dossier & Notes Sidebar */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div
+            className={`agent-dossier-sidebar ${showMobileDossier ? "mobile-dossier-sidebar-visible" : "mobile-dossier-sidebar-hidden"}`}
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            {/* Mobile Back-to-Chat Button */}
+            <div className="mobile-dossier-toggle-bar" style={{ marginBottom: "2px" }}>
+              <button
+                type="button"
+                onClick={() => setShowMobileDossier(false)}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "12px 16px",
+                  borderRadius: "8px",
+                  backgroundColor: "#2563eb",
+                  color: "#ffffff",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  border: "none",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)"
+                }}
+              >
+                💬 Return to Live Chat Stream
+              </button>
+            </div>
             
             {/* Customer Information Card */}
             <div className="glass-panel" style={{ padding: "18px", backgroundColor: "#ffffff" }}>
