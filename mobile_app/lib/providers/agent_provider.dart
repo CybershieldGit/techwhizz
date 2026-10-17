@@ -169,6 +169,7 @@ class AgentProvider extends ChangeNotifier {
     SocketService.off(AppConstants.evtSessionTerminated);
     SocketService.off(AppConstants.evtCannedResponsesUpdate);
     SocketService.off(AppConstants.evtAgentHistoryData);
+    SocketService.off(AppConstants.evtCustomerPresenceUpdate);
 
     // 1. Agent Registered confirmation
     SocketService.on(AppConstants.evtAgentRegistered, (data) {
@@ -375,6 +376,49 @@ class AgentProvider extends ChangeNotifier {
         }
         _isLoadingHistory = false;
         notifyListeners();
+      }
+    });
+
+    // 15. Customer Presence Update
+    SocketService.on(AppConstants.evtCustomerPresenceUpdate, (data) {
+      if (data is Map) {
+        final chatId = data['chatId']?.toString();
+        final connected = data['customerConnected'] == true;
+        final disconnectedAt = data['customerDisconnectedAt']?.toString();
+
+        final idx = _incomingBroadcasts.indexWhere(
+          (b) => b['chatId']?.toString() == chatId || b['id']?.toString() == chatId,
+        );
+        if (idx != -1) {
+          _incomingBroadcasts[idx]['customerConnected'] = connected;
+          if (disconnectedAt != null) {
+            _incomingBroadcasts[idx]['customerDisconnectedAt'] = disconnectedAt;
+          }
+          notifyListeners();
+        }
+
+        if (_activeChat != null && _activeChat!.id == chatId) {
+          _activeChat = ChatModel(
+            id: _activeChat!.id,
+            customer: _activeChat!.customer,
+            subject: _activeChat!.subject,
+            initialMessage: _activeChat!.initialMessage,
+            status: _activeChat!.status,
+            customerConnected: connected,
+            customerDisconnectedAt: disconnectedAt != null
+                ? DateTime.tryParse(disconnectedAt)
+                : null,
+            assignedAgent: _activeChat!.assignedAgent,
+            messages: _messages,
+            notes: _activeChat!.notes,
+            summary: _activeChat!.summary,
+            rating: _activeChat!.rating,
+            createdAt: _activeChat!.createdAt,
+            acceptedAt: _activeChat!.acceptedAt,
+            resolvedAt: _activeChat!.resolvedAt,
+          );
+          notifyListeners();
+        }
       }
     });
   }

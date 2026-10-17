@@ -82,6 +82,8 @@ app.prepare().then(async () => {
         subject: c.subject,
         initialMessage: c.initialMessage,
         status: c.status,
+        customerConnected: c.customerConnected !== false,
+        customerDisconnectedAt: c.customerDisconnectedAt ? c.customerDisconnectedAt.toISOString() : null,
         assignedAgent: c.assignedAgent,
         messages: c.messages || [],
         notes: c.notes || [],
@@ -273,6 +275,8 @@ app.prepare().then(async () => {
       const newChat = {
         id: chatId,
         chatId: chatId,
+        customerConnected: true,
+        customerSocketId: socket.id,
         customer: {
           id: customerId,
           name: customerName || "Customer",
@@ -309,6 +313,7 @@ app.prepare().then(async () => {
           subject: newChat.subject,
           initialMessage: newChat.initialMessage,
           status: "waiting",
+          customerConnected: true,
           messages: newChat.messages,
           notes: [],
           createdAt: new Date()
@@ -992,9 +997,41 @@ app.prepare().then(async () => {
     });
 
     // ------------------------------------
+    // CUSTOMER RECONNECT / REJOIN
+    // ------------------------------------
+    socket.on("customer_rejoin_chat", ({ chatId }) => {
+      const chat = liveChats[chatId];
+      if (chat && (chat.status === "waiting" || chat.status === "active")) {
+        chat.customerConnected = true;
+        chat.customerSocketId = socket.id;
+        chat.customerDisconnectedAt = null;
+        socket.join(`chat_${chatId}`);
+        console.log(`> [Socket] Customer re-connected to chat ${chatId}`);
+
+        const presencePayload = {
+          chatId: chat.id,
+          customerConnected: true,
+          customerDisconnectedAt: null
+        };
+
+        io.to("agents_room").emit("customer_presence_update", presencePayload);
+
+        if (chat.assignedAgent?.id) {
+          io.to(`agent_${chat.assignedAgent.id}`).emit("customer_presence_update", presencePayload);
+        }
+
+        Chat.updateOne(
+          { chatId: chat.id },
+          { customerConnected: true, customerDisconnectedAt: null }
+        ).catch(() => {});
+      }
+    });
+
+    // ------------------------------------
     // DISCONNECT HANDLING
     // ------------------------------------
     socket.on("disconnect", () => {
+      // 1. Agent Disconnect
       for (const agentId in liveAgents) {
         if (liveAgents[agentId].socketId === socket.id) {
           liveAgents[agentId].socketId = null;
@@ -1004,6 +1041,36 @@ app.prepare().then(async () => {
           broadcastAgentList(io);
           broadcastMetrics(io);
           break;
+        }
+      }
+
+      // 2. Customer Disconnect (track if customer left while waiting or in chat)
+      for (const chatId in liveChats) {
+        const chat = liveChats[chatId];
+        if (
+          (chat.customerSocketId === socket.id || chat.customer?.id === socket.id) &&
+          (chat.status === "waiting" || chat.status === "active")
+        ) {
+          chat.customerConnected = false;
+          chat.customerDisconnectedAt = new Date().toISOString();
+          console.log(`> [Socket] Customer disconnected from chat ${chatId} (${chat.customer?.name || "Customer"})`);
+
+          const presencePayload = {
+            chatId: chat.id,
+            customerConnected: false,
+            customerDisconnectedAt: chat.customerDisconnectedAt
+          };
+
+          io.to("agents_room").emit("customer_presence_update", presencePayload);
+
+          if (chat.assignedAgent?.id) {
+            io.to(`agent_${chat.assignedAgent.id}`).emit("customer_presence_update", presencePayload);
+          }
+
+          Chat.updateOne(
+            { chatId: chat.id },
+            { customerConnected: false, customerDisconnectedAt: new Date() }
+          ).catch(() => {});
         }
       }
     });

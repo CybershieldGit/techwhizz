@@ -39,6 +39,8 @@ const ChatSchema = new mongoose.Schema(
       default: "waiting",
       index: true,
     },
+    customerConnected: { type: Boolean, default: true },
+    customerDisconnectedAt: { type: Date, default: null },
     assignedAgent: {
       id: { type: String },
       name: { type: String },

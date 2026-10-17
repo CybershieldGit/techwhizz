@@ -66,6 +66,7 @@ class AppConstants {
   static const String evtSessionTerminated = 'agent_session_terminated';
   static const String evtCannedResponsesUpdate = 'canned_responses_update';
   static const String evtAgentHistoryData = 'agent_history_data';
+  static const String evtCustomerPresenceUpdate = 'customer_presence_update';
 
   // ── Canned Macros ─────────────────────────────────────────
   static const List<Map<String, String>> cannedMacros = [

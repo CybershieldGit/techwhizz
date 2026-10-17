@@ -117,6 +117,13 @@ export default function CustomerChat({ socket }) {
       setActiveChat(null);
     };
 
+    const handleConnect = () => {
+      if (activeChat && (chatState === "waiting" || chatState === "active")) {
+        socket.emit("customer_rejoin_chat", { chatId: activeChat.id });
+      }
+    };
+
+    socket.on("connect", handleConnect);
     socket.on("chat_queued", handleChatQueued);
     socket.on("agent_connected", handleAgentConnected);
     socket.on("new_message", handleNewMessage);
@@ -125,6 +132,7 @@ export default function CustomerChat({ socket }) {
     socket.on("chat_cancelled", handleChatCancelled);
 
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("chat_queued", handleChatQueued);
       socket.off("agent_connected", handleAgentConnected);
       socket.off("new_message", handleNewMessage);
@@ -132,7 +140,7 @@ export default function CustomerChat({ socket }) {
       socket.off("chat_ended", handleChatEnded);
       socket.off("chat_cancelled", handleChatCancelled);
     };
-  }, [socket]);
+  }, [socket, activeChat, chatState]);
 
   const handlePhoneChange = (e) => {
     // Only numerical characters (strip any letters or symbols)

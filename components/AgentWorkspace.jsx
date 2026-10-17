@@ -31,6 +31,24 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
   const [notificationPermission, setNotificationPermission] = useState("default");
   const [isAudioMuted, setIsAudioMuted] = useState(false);
 
+  // Live real-time timer ticker (updates every second for elapsed queue waiting time)
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatElapsed = (createdAt) => {
+    if (!createdAt) return "Just now";
+    const diffSec = Math.max(0, Math.floor((now - new Date(createdAt).getTime()) / 1000));
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const mins = Math.floor(diffSec / 60);
+    const remSec = diffSec % 60;
+    if (mins < 60) return `${mins}m ${remSec}s ago`;
+    const hrs = Math.floor(mins / 60);
+    return `${hrs}h ${mins % 60}m ago`;
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       setNotificationPermission(Notification.permission);
@@ -254,6 +272,17 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
       }
     };
 
+    const handleCustomerPresenceUpdate = ({ chatId, customerConnected, disconnectedAt }) => {
+      setIncomingBroadcasts((prev) =>
+        prev.map((c) =>
+          c.id === chatId ? { ...c, customerConnected, customerDisconnectedAt: disconnectedAt } : c
+        )
+      );
+      if (activeChat && activeChat.id === chatId) {
+        setActiveChat((prev) => ({ ...prev, customerConnected, customerDisconnectedAt: disconnectedAt }));
+      }
+    };
+
     socket.on("agent_registered", handleAgentRegistered);
     socket.on("incoming_chat_broadcast", handleIncomingBroadcast);
     socket.on("chat_claimed_by_other", handleChatClaimedByOther);
@@ -263,6 +292,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
     socket.on("user_typing", handleUserTyping);
     socket.on("chat_ended", handleChatEnded);
     socket.on("chat_notes_updated", handleNotesUpdated);
+    socket.on("customer_presence_update", handleCustomerPresenceUpdate);
 
     return () => {
       socket.off("agent_registered", handleAgentRegistered);
@@ -274,6 +304,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
       socket.off("user_typing", handleUserTyping);
       socket.off("chat_ended", handleChatEnded);
       socket.off("chat_notes_updated", handleNotesUpdated);
+      socket.off("customer_presence_update", handleCustomerPresenceUpdate);
     };
   }, [socket, selectedAgentId, activeChat]);
 
@@ -667,57 +698,118 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
       {/* INCOMING BROADCAST NOTIFICATIONS (FIRST TO ACCEPT WINS) */}
       {incomingBroadcasts.length > 0 && !activeChat && (
         <div style={{ marginBottom: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
-          {incomingBroadcasts.map((chat) => (
-            <div
-              key={chat.id}
-              className="glass-panel broadcast-flash"
-              style={{
-                padding: "20px 24px",
-                backgroundColor: "#ecfdf5",
-                border: "2px solid #10b981",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "16px"
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                <div style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "50%",
-                  backgroundColor: "#059669",
+          {incomingBroadcasts.map((chat) => {
+            const isConnected = chat.customerConnected !== false;
+            return (
+              <div
+                key={chat.id}
+                className="glass-panel broadcast-flash"
+                style={{
+                  padding: "20px 24px",
+                  backgroundColor: isConnected ? "#ecfdf5" : "#fffbeb",
+                  border: isConnected ? "2px solid #10b981" : "2px solid #f59e0b",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  color: "#ffffff",
-                  boxShadow: "0 4px 12px rgba(5, 150, 105, 0.3)"
-                }}>
-                  <BellRing size={24} />
-                </div>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-                    <span style={{ fontSize: "11px", fontWeight: "800", backgroundColor: "#059669", color: "#ffffff", padding: "2px 8px", borderRadius: "4px", textTransform: "uppercase" }}>
-                      Incoming Live Broadcast
-                    </span>
-                    <span style={{ fontSize: "12px", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "6px" }}>
-                      Queue: <strong style={{ color: "#0f172a" }}>{chat.customer.department || "Support"}</strong>
-                      {chat.customer.phone && (
-                        <span style={{ color: "#0284c7", backgroundColor: "#f0f9ff", padding: "1px 6px", borderRadius: "4px", border: "1px solid #bae6fd", fontWeight: "600" }}>
-                          📞 {chat.customer.phone}
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "16px"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                  <div style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    backgroundColor: isConnected ? "#059669" : "#d97706",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#ffffff",
+                    boxShadow: isConnected ? "0 4px 12px rgba(5, 150, 105, 0.3)" : "0 4px 12px rgba(217, 119, 6, 0.3)"
+                  }}>
+                    <BellRing size={24} />
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "800", backgroundColor: isConnected ? "#059669" : "#d97706", color: "#ffffff", padding: "2px 8px", borderRadius: "4px", textTransform: "uppercase" }}>
+                        Incoming Live Broadcast
+                      </span>
+
+                      {/* Real-Time Live Waiting Timer */}
+                      <span style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: "#334155",
+                        backgroundColor: "#ffffff",
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        border: "1px solid #cbd5e1"
+                      }}>
+                        <Clock size={12} color="#64748b" />
+                        <span>Waiting: {formatElapsed(chat.createdAt)}</span>
+                      </span>
+
+                      {/* Customer Live Presence Mark */}
+                      {isConnected ? (
+                        <span style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: "#059669",
+                          backgroundColor: "#dcfce7",
+                          padding: "2px 8px",
+                          borderRadius: "12px",
+                          border: "1px solid #86efac"
+                        }}>
+                          <span style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+                          Customer Online
+                        </span>
+                      ) : (
+                        <span style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: "#b91c1c",
+                          backgroundColor: "#fee2e2",
+                          padding: "2px 8px",
+                          borderRadius: "12px",
+                          border: "1px solid #fca5a5"
+                        }}>
+                          <span style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: "#ef4444" }} />
+                          Customer Left / Disconnected
                         </span>
                       )}
-                    </span>
+
+                      <span style={{ fontSize: "12px", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "6px" }}>
+                        Queue: <strong style={{ color: "#0f172a" }}>{chat.customer.department || "Support"}</strong>
+                        {chat.customer.phone && (
+                          <span style={{ color: "#0284c7", backgroundColor: "#f0f9ff", padding: "1px 6px", borderRadius: "4px", border: "1px solid #bae6fd", fontWeight: "600" }}>
+                            📞 {chat.customer.phone}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a" }}>
+                      {chat.subject} — <span style={{ color: isConnected ? "#059669" : "#d97706" }}>{chat.customer.name}</span>
+                    </h3>
+                    <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "2px", maxWidth: "600px" }}>
+                      "{chat.initialMessage}"
+                    </p>
+                    {!isConnected && (
+                      <p style={{ fontSize: "11px", color: "#b91c1c", fontWeight: "600", marginTop: "4px" }}>
+                        ⚠️ Customer closed or left the chat room while waiting. You can still claim and resolve this session.
+                      </p>
+                    )}
                   </div>
-                  <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a" }}>
-                    {chat.subject} — <span style={{ color: "#059669" }}>{chat.customer.name}</span>
-                  </h3>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "2px", maxWidth: "600px" }}>
-                    "{chat.initialMessage}"
-                  </p>
                 </div>
-              </div>
 
               {/* FIRST TO ACCEPT BUTTON */}
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -772,7 +864,17 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
                   <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "4px", backgroundColor: "#eff6ff", color: "#1d4ed8", fontWeight: "700", border: "1px solid #bfdbfe" }}>
                     {activeChat.customer.department}
                   </span>
-                  <span className="status-indicator status-in_chat" />
+                  {activeChat.customerConnected !== false ? (
+                    <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "12px", backgroundColor: "#ecfdf5", color: "#059669", fontWeight: "700", border: "1px solid #a7f3d0", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#10b981" }} />
+                      Customer Online
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "12px", backgroundColor: "#fef2f2", color: "#b91c1c", fontWeight: "700", border: "1px solid #fecaca", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#ef4444" }} />
+                      Customer Left / Disconnected
+                    </span>
+                  )}
                 </div>
                 <p style={{ fontSize: "12px", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
                   <span>{activeChat.subject}</span>

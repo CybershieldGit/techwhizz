@@ -13,6 +13,8 @@ class ChatModel {
   final List<Map<String, dynamic>> notes;
   final String? summary;
   final int? rating;
+  final bool customerConnected;
+  final DateTime? customerDisconnectedAt;
   final DateTime createdAt;
   final DateTime? acceptedAt;
   final DateTime? resolvedAt;
@@ -23,6 +25,8 @@ class ChatModel {
     required this.subject,
     required this.initialMessage,
     required this.status,
+    this.customerConnected = true,
+    this.customerDisconnectedAt,
     this.assignedAgent,
     required this.messages,
     required this.notes,
@@ -50,6 +54,10 @@ class ChatModel {
       subject: json['subject'] ?? 'Customer Inquiry',
       initialMessage: json['initialMessage'] ?? '',
       status: json['status'] ?? 'waiting',
+      customerConnected: json['customerConnected'] != false,
+      customerDisconnectedAt: json['customerDisconnectedAt'] != null
+          ? DateTime.tryParse(json['customerDisconnectedAt'].toString())
+          : null,
       assignedAgent: json['assignedAgent'] != null
           ? Map<String, dynamic>.from(json['assignedAgent'])
           : null,

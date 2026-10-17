@@ -342,12 +342,34 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    Text(
-                      '${customer.department} • #${chat.shortId}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          '${customer.department} • #${chat.shortId}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: chat.customerConnected ? AppColors.emerald : AppColors.rose,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          chat.customerConnected ? 'Online' : 'Left',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: chat.customerConnected ? AppColors.emerald : AppColors.rose,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
