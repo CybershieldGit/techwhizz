@@ -290,7 +290,7 @@ export default function CustomerChat({ socket }) {
             </p>
           </div>
 
-          <form onSubmit={handleStartChat} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <form onSubmit={handleStartChat} suppressHydrationWarning style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div className="form-grid-row">
               <div>
                 <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
@@ -299,6 +299,7 @@ export default function CustomerChat({ socket }) {
                 <input
                   type="text"
                   required
+                  suppressHydrationWarning
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Enter your full name"
@@ -322,6 +323,7 @@ export default function CustomerChat({ socket }) {
                 <input
                   type="email"
                   required
+                  suppressHydrationWarning
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="yourname@company.com"
@@ -365,6 +367,7 @@ export default function CustomerChat({ socket }) {
                   <select
                     id="customer-country-code"
                     aria-label="Country calling code"
+                    suppressHydrationWarning
                     value={countryCode}
                     onChange={(e) => setCountryCode(e.target.value)}
                     style={{
@@ -402,6 +405,7 @@ export default function CustomerChat({ socket }) {
                     type="tel"
                     id="customer-phone-input"
                     required
+                    suppressHydrationWarning
                     value={phoneNumber}
                     maxLength={10}
                     inputMode="numeric"
@@ -453,6 +457,7 @@ export default function CustomerChat({ socket }) {
                 <div style={{ position: "relative" }}>
                   <select
                     id="customer-department-select"
+                    suppressHydrationWarning
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                     style={{
@@ -488,6 +493,7 @@ export default function CustomerChat({ socket }) {
               <input
                 type="text"
                 required
+                suppressHydrationWarning
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 placeholder="Brief summary of your inquiry (e.g. Trouble accessing dashboard)"
@@ -511,6 +517,7 @@ export default function CustomerChat({ socket }) {
               <textarea
                 rows={3}
                 required
+                suppressHydrationWarning
                 value={formData.initialMessage}
                 onChange={(e) => setFormData({ ...formData, initialMessage: e.target.value })}
                 placeholder="Please describe your question or issue in detail so our team can help..."
@@ -538,6 +545,7 @@ export default function CustomerChat({ socket }) {
 
               <button
                 type="submit"
+                suppressHydrationWarning
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
