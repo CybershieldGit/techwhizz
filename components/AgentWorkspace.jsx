@@ -110,12 +110,41 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [resolutionSummary, setResolutionSummary] = useState("");
 
+  const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const activeChatRef = useRef(activeChat);
+  const isAudioMutedRef = useRef(isAudioMuted);
+  const currentAgentRef = useRef(currentAgent);
 
+  // Synchronize mutable refs on every render to avoid stale closures in socket handlers
+  activeChatRef.current = activeChat;
+  isAudioMutedRef.current = isAudioMuted;
+  currentAgentRef.current = currentAgent;
+
+  // Track previous message count to only trigger smooth scroll when new messages actually arrive
+  const prevMessagesCountRef = useRef(0);
+
+  // Smooth scroll within message container when new messages arrive or customer is typing
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isCustomerTyping]);
+    if (!messagesContainerRef.current) return;
+    const currentCount = messages.length;
+    if (currentCount > prevMessagesCountRef.current || isCustomerTyping) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: prevMessagesCountRef.current === 0 ? "auto" : "smooth"
+      });
+    }
+    prevMessagesCountRef.current = currentCount;
+  }, [messages.length, isCustomerTyping]);
+
+  // Instant snap scroll to bottom whenever switching or accepting a chat (no wobble)
+  useEffect(() => {
+    if (activeChat && messagesContainerRef.current) {
+      prevMessagesCountRef.current = messages.length;
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [activeChat?.id]);
 
   // Continuous sound alert ring loop while there are unclaimed incoming broadcasts
   useEffect(() => {
@@ -147,7 +176,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
     try {
       savedStatus = localStorage.getItem(`bpo_agent_status_${selectedAgentId}`);
     } catch {}
-    const initialStatus = savedStatus || currentAgent?.status || "available";
+    const initialStatus = savedStatus || currentAgentRef.current?.status || "available";
 
     socket.emit("agent_register", {
       agentId: selectedAgentId,
@@ -165,7 +194,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
       });
 
       // Start continuous ringing alert if audio is not muted and agent is available
-      if (!isAudioMuted && (!currentAgent || currentAgent.status === "available")) {
+      if (!isAudioMutedRef.current && (!currentAgentRef.current || currentAgentRef.current.status === "available")) {
         sound.startRingingAlert(1800);
       }
 
@@ -209,23 +238,34 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
 
     const handleChatAcceptSuccess = ({ chat }) => {
       sound.stopRingingAlert();
+
+      // Guard against infinite loops or duplicate triggers for an already-connected chat
+      const curChat = activeChatRef.current;
+      const curId = curChat?.id || curChat?.chatId;
+      const newId = chat?.id || chat?.chatId;
+      const isAlreadyActive = Boolean(curId && newId && curId === newId);
+
       setActiveChat(chat);
       setShowMobileDossier(false);
       setMessages(chat.messages || []);
       setNotes(chat.notes || []);
       setIncomingBroadcasts((prev) => {
-        const remaining = prev.filter((c) => c.id !== chat.id);
+        const remaining = prev.filter((c) => c.id !== chat.id && c.chatId !== chat.id);
         if (remaining.length === 0) {
           sound.stopRingingAlert();
         }
         return remaining;
       });
-      sound.playSuccessSound();
-      setToastNotification({
-        type: "success",
-        message: `Chat claimed successfully! You are now connected with ${chat.customer.name}.`
-      });
-      setTimeout(() => setToastNotification(null), 4000);
+
+      // Only play success alert & pop toast on the initial fresh claim, NOT on reactive re-emits
+      if (!isAlreadyActive) {
+        sound.playSuccessSound();
+        setToastNotification({
+          type: "success",
+          message: `Chat claimed successfully! You are now connected with ${chat.customer?.name || "Customer"}.`
+        });
+        setTimeout(() => setToastNotification(null), 4000);
+      }
     };
 
     const handleChatAcceptFailed = ({ reason }) => {
@@ -239,16 +279,18 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
     };
 
     const handleNewMessage = ({ chatId, message }) => {
-      if (activeChat && activeChat.id === chatId) {
+      const curChat = activeChatRef.current;
+      const curId = curChat?.id || curChat?.chatId;
+      if (curChat && curId === chatId) {
         setMessages((prev) => [...prev, message]);
         if (message.sender === "customer") {
-          if (!isAudioMuted) {
+          if (!isAudioMutedRef.current) {
             sound.playMessageSound();
           }
 
           // Trigger Desktop Push Notification if window/tab is in the background
           if (typeof document !== "undefined" && document.hidden) {
-            sound.sendPushNotification(`💬 ${activeChat?.customer?.name || "Customer"} says:`, {
+            sound.sendPushNotification(`💬 ${curChat.customer?.name || "Customer"} says:`, {
               body: message.text || "New message received",
               tag: `msg_${chatId}`,
               requireInteraction: false,
@@ -270,21 +312,26 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
     };
 
     const handleChatEnded = ({ chat }) => {
-      if (activeChat && activeChat.id === chat.id) {
+      const curChat = activeChatRef.current;
+      const curId = curChat?.id || curChat?.chatId;
+      const endedId = chat?.id || chat?.chatId;
+      if (curChat && curId === endedId) {
         setActiveChat(null);
         setMessages([]);
         setNotes([]);
         setShowResolveModal(false);
         setToastNotification({
           type: "info",
-          message: `Chat with ${chat.customer.name} closed. You are now Available (Free) for incoming chats.`
+          message: `Chat with ${chat.customer?.name || "Customer"} closed. You are now Available (Free) for incoming chats.`
         });
         setTimeout(() => setToastNotification(null), 5000);
       }
     };
 
     const handleNotesUpdated = ({ chatId, notes }) => {
-      if (activeChat && activeChat.id === chatId) {
+      const curChat = activeChatRef.current;
+      const curId = curChat?.id || curChat?.chatId;
+      if (curChat && curId === chatId) {
         setNotes(notes);
       }
     };
@@ -292,11 +339,13 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
     const handleCustomerPresenceUpdate = ({ chatId, customerConnected, disconnectedAt }) => {
       setIncomingBroadcasts((prev) =>
         prev.map((c) =>
-          c.id === chatId ? { ...c, customerConnected, customerDisconnectedAt: disconnectedAt } : c
+          (c.id === chatId || c.chatId === chatId) ? { ...c, customerConnected, customerDisconnectedAt: disconnectedAt } : c
         )
       );
-      if (activeChat && activeChat.id === chatId) {
-        setActiveChat((prev) => ({ ...prev, customerConnected, customerDisconnectedAt: disconnectedAt }));
+      const curChat = activeChatRef.current;
+      const curId = curChat?.id || curChat?.chatId;
+      if (curChat && curId === chatId) {
+        setActiveChat((prev) => (prev ? { ...prev, customerConnected, customerDisconnectedAt: disconnectedAt } : prev));
       }
     };
 
@@ -323,7 +372,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
       socket.off("chat_notes_updated", handleNotesUpdated);
       socket.off("customer_presence_update", handleCustomerPresenceUpdate);
     };
-  }, [socket, selectedAgentId, activeChat]);
+  }, [socket, selectedAgentId]);
 
   const handleStatusChange = (newStatus) => {
     if (activeChat) {
@@ -812,15 +861,18 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
             </div>
 
             {/* Messages Area */}
-            <div style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "14px",
-              backgroundColor: "#f8fafc"
-            }}>
+            <div
+              ref={messagesContainerRef}
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "14px",
+                backgroundColor: "#f8fafc"
+              }}
+            >
               {messages.map((msg, index) => {
                 const isMe = msg.sender === "agent";
                 const isSys = msg.sender === "system";
