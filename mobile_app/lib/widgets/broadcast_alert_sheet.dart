@@ -14,12 +14,14 @@ class BroadcastAlertCard extends StatefulWidget {
   final Map<String, dynamic> broadcast;
   final VoidCallback onAccept;
   final VoidCallback? onDismiss;
+  final EdgeInsetsGeometry? margin;
 
   const BroadcastAlertCard({
     super.key,
     required this.broadcast,
     required this.onAccept,
     this.onDismiss,
+    this.margin,
   });
 
   @override
@@ -77,7 +79,7 @@ class _BroadcastAlertCardState extends State<BroadcastAlertCard> {
     final borderColor = isCustomerConnected ? AppColors.emerald : AppColors.amber;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: widget.margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isCustomerConnected ? Colors.white : const Color(0xFFFFFBEB),

@@ -9,7 +9,19 @@ import {
 } from "lucide-react";
 import { sound } from "@/lib/sound";
 
-export default function AgentWorkspace({ socket, agentsList, authenticatedAgent }) {
+export default function AgentWorkspace({ socket, agentsList, authenticatedAgent, metrics: initialMetrics }) {
+  const [metrics, setMetrics] = useState(initialMetrics || {
+    waitingChats: 0,
+    activeChats: 0,
+    resolvedChats: 0
+  });
+
+  useEffect(() => {
+    if (initialMetrics) {
+      setMetrics(initialMetrics);
+    }
+  }, [initialMetrics]);
+
   const [selectedAgentId, setSelectedAgentId] = useState(authenticatedAgent?.id || "agent_1");
   const [currentAgent, setCurrentAgent] = useState(() => {
     let initialStatus = authenticatedAgent?.status || "available";
@@ -349,6 +361,10 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
       }
     };
 
+    const handleMetricsUpdate = (updatedMetrics) => {
+      setMetrics(updatedMetrics);
+    };
+
     socket.on("agent_registered", handleAgentRegistered);
     socket.on("incoming_chat_broadcast", handleIncomingBroadcast);
     socket.on("chat_claimed_by_other", handleChatClaimedByOther);
@@ -359,6 +375,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
     socket.on("chat_ended", handleChatEnded);
     socket.on("chat_notes_updated", handleNotesUpdated);
     socket.on("customer_presence_update", handleCustomerPresenceUpdate);
+    socket.on("metrics_update", handleMetricsUpdate);
 
     return () => {
       socket.off("agent_registered", handleAgentRegistered);
@@ -371,6 +388,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
       socket.off("chat_ended", handleChatEnded);
       socket.off("chat_notes_updated", handleNotesUpdated);
       socket.off("customer_presence_update", handleCustomerPresenceUpdate);
+      socket.off("metrics_update", handleMetricsUpdate);
     };
   }, [socket, selectedAgentId]);
 
@@ -623,6 +641,116 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent 
             </button>
           </div>
 
+        </div>
+      </div>
+
+      {/* 3 METRIC STATUS CARDS (MATCHING MOBILE VIEW) */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gap: "14px",
+        marginBottom: "20px"
+      }}>
+        {/* 1. Queue Pending */}
+        <div style={{
+          padding: "16px 20px",
+          borderRadius: "14px",
+          backgroundColor: "#fffbeb",
+          border: "1px solid #fde68a",
+          boxShadow: "0 2px 8px rgba(217, 119, 6, 0.05)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }}>
+          <div>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "#92400e", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Queue Pending
+            </div>
+            <div style={{ fontSize: "28px", fontWeight: "900", color: "#d97706", lineHeight: 1 }}>
+              {metrics?.waitingChats ?? incomingBroadcasts.length}
+            </div>
+          </div>
+          <div style={{
+            width: "42px",
+            height: "42px",
+            borderRadius: "50%",
+            backgroundColor: "#ffffff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 6px rgba(217, 119, 6, 0.15)",
+            color: "#d97706"
+          }}>
+            <Clock size={20} />
+          </div>
+        </div>
+
+        {/* 2. In Progress */}
+        <div style={{
+          padding: "16px 20px",
+          borderRadius: "14px",
+          backgroundColor: "#eff6ff",
+          border: "1px solid #bfdbfe",
+          boxShadow: "0 2px 8px rgba(37, 99, 235, 0.05)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }}>
+          <div>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "#1e40af", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              In Progress
+            </div>
+            <div style={{ fontSize: "28px", fontWeight: "900", color: "#2563eb", lineHeight: 1 }}>
+              {metrics?.activeChats ?? (activeChat ? 1 : 0)}
+            </div>
+          </div>
+          <div style={{
+            width: "42px",
+            height: "42px",
+            borderRadius: "50%",
+            backgroundColor: "#ffffff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 6px rgba(37, 99, 235, 0.15)",
+            color: "#2563eb"
+          }}>
+            <MessageSquare size={20} />
+          </div>
+        </div>
+
+        {/* 3. Resolved Today */}
+        <div style={{
+          padding: "16px 20px",
+          borderRadius: "14px",
+          backgroundColor: "#ecfdf5",
+          border: "1px solid #a7f3d0",
+          boxShadow: "0 2px 8px rgba(5, 150, 105, 0.05)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }}>
+          <div>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "#065f46", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Resolved Today
+            </div>
+            <div style={{ fontSize: "28px", fontWeight: "900", color: "#059669", lineHeight: 1 }}>
+              {metrics?.resolvedChats ?? currentAgent?.resolvedToday ?? 0}
+            </div>
+          </div>
+          <div style={{
+            width: "42px",
+            height: "42px",
+            borderRadius: "50%",
+            backgroundColor: "#ffffff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 6px rgba(5, 150, 105, 0.15)",
+            color: "#059669"
+          }}>
+            <CheckCircle2 size={20} />
+          </div>
         </div>
       </div>
 

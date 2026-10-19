@@ -10,7 +10,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../core/theme.dart';
-import '../models/agent_model.dart';
 import '../models/chat_model.dart';
 import '../providers/agent_provider.dart';
 import '../widgets/broadcast_alert_sheet.dart';
@@ -72,13 +71,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(7),
+          borderRadius: BorderRadius.circular(8),
           child: Container(
-            height: 32,
+            height: 34,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: isActive ? activeBg : Colors.transparent,
-              borderRadius: BorderRadius.circular(7),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: isActive ? activeBorder : Colors.transparent,
                 width: 1,
@@ -87,7 +86,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ? [
                       BoxShadow(
                         color: activeColor.withValues(alpha: 0.12),
-                        blurRadius: 3,
+                        blurRadius: 4,
                         offset: const Offset(0, 1),
                       ),
                     ]
@@ -98,18 +97,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 13, color: isActive ? activeColor : AppColors.textSecondary),
+                  Icon(icon, size: 14, color: isActive ? activeColor : AppColors.textSecondary),
                   const SizedBox(width: 4),
                 ] else if (dotColor != null) ...[
                   Container(
-                    width: 6,
-                    height: 6,
+                    width: 7,
+                    height: 7,
                     decoration: BoxDecoration(
                       color: dotColor,
                       shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 5),
                 ],
                 Flexible(
                   child: Text(
@@ -136,17 +135,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String value,
     required IconData icon,
     required Color color,
+    required Color bgTint,
+    required Color borderColor,
   }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 13),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          color: bgTint,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
+              color: color.withValues(alpha: 0.05),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -158,118 +159,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.12),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Icon(icon, size: 14, color: color),
+                ),
                 Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                  value,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: color,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                Icon(icon, size: 16, color: color),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: color,
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildRosterCard(AgentModel agent) {
-    final statusColor = _getStatusColor(agent.status);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: AppColors.bgInput,
-                backgroundImage: agent.avatar != null && agent.avatar!.isNotEmpty
-                    ? CachedNetworkImageProvider(agent.avatar!)
-                    : null,
-                child: agent.avatar == null || agent.avatar!.isEmpty
-                    ? Text(
-                        agent.name.isNotEmpty ? agent.name.substring(0, 1) : 'A',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      )
-                    : null,
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  agent.name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  '${agent.role} • ${agent.department}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              _formatStatusLabel(agent.status),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: statusColor,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -459,12 +387,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<AgentProvider>();
     final agent = provider.currentAgent;
-
     final isAvailable = provider.agentStatus == 'available';
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        titleSpacing: 16,
         title: Row(
           children: [
             Container(
@@ -498,26 +428,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'OmniFlow Agent',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'OmniFlow Support',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Text(
+                  'Agent Console',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
         actions: [
           // Socket Connection status indicator
           Container(
-            margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            margin: const EdgeInsets.only(right: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
               color: provider.isSocketConnected
-                  ? AppColors.emerald.withValues(alpha: 0.1)
-                  : AppColors.amber.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+                  ? const Color(0xFFECFDF5)
+                  : const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: provider.isSocketConnected
+                    ? const Color(0xFFA7F3D0)
+                    : const Color(0xFFFDE68A),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -528,14 +478,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   decoration: BoxDecoration(
                     color: provider.isSocketConnected ? AppColors.emerald : AppColors.amber,
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (provider.isSocketConnected ? AppColors.emerald : AppColors.amber)
+                            .withValues(alpha: 0.4),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 6),
                 Text(
-                  provider.isSocketConnected ? 'LIVE' : 'CONNECTING',
+                  provider.isSocketConnected ? 'LIVE' : 'SYNCING',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
                     color: provider.isSocketConnected ? AppColors.emerald : AppColors.amber,
                   ),
                 ),
@@ -557,12 +516,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               }
             },
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            // Re-trigger session refresh if needed
             setState(() {});
           },
           child: SingleChildScrollView(
@@ -574,16 +533,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 // Clean & Structured Agent Identity Card
                 if (agent != null) ...[
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppColors.border),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 12,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
@@ -593,24 +552,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         // Identity Top Row: Avatar + Info + Live Status Badge
                         Row(
                           children: [
-                            CircleAvatar(
-                              radius: 19,
-                              backgroundColor: AppColors.bgInput,
-                              backgroundImage: agent.avatar != null && agent.avatar!.isNotEmpty
-                                  ? CachedNetworkImageProvider(agent.avatar!)
-                                  : null,
-                              child: agent.avatar == null || agent.avatar!.isEmpty
-                                  ? Text(
-                                      agent.name.isNotEmpty ? agent.name.substring(0, 1) : 'A',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.blue,
-                                      ),
-                                    )
-                                  : null,
+                            Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 22,
+                                  backgroundColor: const Color(0xFFEFF6FF),
+                                  backgroundImage: agent.avatar != null && agent.avatar!.isNotEmpty
+                                      ? CachedNetworkImageProvider(agent.avatar!)
+                                      : null,
+                                  child: agent.avatar == null || agent.avatar!.isEmpty
+                                      ? Text(
+                                          agent.name.isNotEmpty ? agent.name.substring(0, 1).toUpperCase() : 'A',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.blue,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    width: 11,
+                                    height: 11,
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(provider.agentStatus),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -621,9 +597,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         child: Text(
                                           agent.name,
                                           style: const TextStyle(
-                                            fontSize: 14,
+                                            fontSize: 15,
                                             fontWeight: FontWeight.w800,
                                             color: AppColors.textPrimary,
+                                            letterSpacing: -0.2,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -631,29 +608,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                                       const SizedBox(width: 6),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFEFF6FF),
-                                          borderRadius: BorderRadius.circular(4),
+                                          borderRadius: BorderRadius.circular(6),
                                           border: Border.all(color: const Color(0xFFBFDBFE)),
                                         ),
                                         child: const Text(
-                                          'ACTIVE',
+                                          'OPERATOR',
                                           style: TextStyle(
                                             fontSize: 9,
                                             fontWeight: FontWeight.w800,
                                             color: AppColors.blue,
+                                            letterSpacing: 0.5,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 1),
+                                  const SizedBox(height: 2),
                                   Text(
                                     '${agent.role} • ${agent.department}',
                                     style: const TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       color: AppColors.textSecondary,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -663,10 +642,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             // Current Live Status Pill
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                               decoration: BoxDecoration(
                                 color: _getStatusColor(provider.agentStatus).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
                                   color: _getStatusColor(provider.agentStatus).withValues(alpha: 0.3),
                                 ),
@@ -675,8 +654,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    width: 6,
-                                    height: 6,
+                                    width: 7,
+                                    height: 7,
                                     decoration: BoxDecoration(
                                       color: _getStatusColor(provider.agentStatus),
                                       shape: BoxShape.circle,
@@ -686,7 +665,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Text(
                                     _formatStatusLabel(provider.agentStatus),
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w800,
                                       color: _getStatusColor(provider.agentStatus),
                                     ),
@@ -697,14 +676,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
 
-                        // 4 Structured & Small Agent Control Options
+                        // Structured Agent Control Options
                         Container(
-                          padding: const EdgeInsets.all(3),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(9),
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Row(
@@ -719,7 +698,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 activeBorder: provider.isSoundMuted ? const Color(0xFFFECACA) : const Color(0xFFA7F3D0),
                                 onTap: () => provider.toggleSoundMuted(),
                               ),
-                              const SizedBox(width: 3),
+                              const SizedBox(width: 4),
 
                               // 2. Free (Ready) Status
                               _buildSegmentBtn(
@@ -731,7 +710,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 activeBorder: const Color(0xFFA7F3D0),
                                 onTap: () => provider.updateStatus('available'),
                               ),
-                              const SizedBox(width: 3),
+                              const SizedBox(width: 4),
 
                               // 3. Away Status
                               _buildSegmentBtn(
@@ -743,7 +722,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 activeBorder: const Color(0xFFFDE68A),
                                 onTap: () => provider.updateStatus('busy'),
                               ),
-                              const SizedBox(width: 3),
+                              const SizedBox(width: 4),
 
                               // 4. Break Status
                               _buildSegmentBtn(
@@ -761,7 +740,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                 ],
 
                 // Metrics Strip
@@ -772,14 +751,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       value: provider.metrics['waitingChats']?.toString() ??
                           provider.incomingBroadcasts.length.toString(),
                       icon: Icons.hourglass_top_rounded,
-                      color: AppColors.amber,
+                      color: const Color(0xFFD97706),
+                      bgTint: const Color(0xFFFFFBEB),
+                      borderColor: const Color(0xFFFDE68A),
                     ),
                     const SizedBox(width: 8),
                     _buildMetricCard(
-                      label: 'Active Chats',
+                      label: 'In Progress',
                       value: provider.metrics['activeChats']?.toString() ?? '0',
-                      icon: Icons.chat_bubble_outline,
+                      icon: Icons.chat_bubble_outline_rounded,
                       color: AppColors.blue,
+                      bgTint: const Color(0xFFEFF6FF),
+                      borderColor: const Color(0xFFBFDBFE),
                     ),
                     const SizedBox(width: 8),
                     _buildMetricCard(
@@ -787,82 +770,176 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       value: provider.metrics['resolvedToday']?.toString() ??
                           agent?.resolvedToday.toString() ??
                           '0',
-                      icon: Icons.check_circle_outline,
+                      icon: Icons.check_circle_outline_rounded,
                       color: AppColors.emerald,
+                      bgTint: const Color(0xFFECFDF5),
+                      borderColor: const Color(0xFFA7F3D0),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
 
                 // Active ongoing session banner (if agent backed out to dashboard without resolving)
                 if (provider.activeChat != null) ...[
                   _buildActiveSessionCard(context, provider.activeChat!),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                 ],
 
                 // Incoming Customer Dispatches (Queue)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'INCOMING DISPATCHES',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
-                        color: AppColors.textSecondary,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(Icons.podcasts_rounded, size: 14, color: AppColors.blue),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'INCOMING DISPATCHES',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
                     if (provider.incomingBroadcasts.isNotEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                         decoration: BoxDecoration(
                           color: AppColors.rose,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.rose.withValues(alpha: 0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          '${provider.incomingBroadcasts.length} NEW',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              '${provider.incomingBroadcasts.length} NEW',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
 
                 if (provider.incomingBroadcasts.isEmpty)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppColors.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: Row(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 7,
-                          height: 7,
+                          width: 46,
+                          height: 46,
                           decoration: BoxDecoration(
-                            color: isAvailable ? AppColors.emerald : AppColors.amber,
+                            color: isAvailable
+                                ? const Color(0xFFECFDF5)
+                                : const Color(0xFFFFFBEB),
                             shape: BoxShape.circle,
                           ),
+                          child: Icon(
+                            isAvailable
+                                ? Icons.headset_mic_rounded
+                                : Icons.pause_circle_outline_rounded,
+                            color: isAvailable ? AppColors.emerald : AppColors.amber,
+                            size: 22,
+                          ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 12),
+                        Text(
+                          isAvailable ? 'Queue is Clear' : 'Dispatches Paused',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: isAvailable ? AppColors.textPrimary : AppColors.amber,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         Text(
                           isAvailable
-                              ? 'Queue Clear • Standing by for incoming customer chats'
-                              : 'Queue Paused • Status is set to Away / Break',
-                          style: TextStyle(
+                              ? 'Standing by for incoming customer inquiries. Real-time push notifications are armed.'
+                              : 'Set status to Free to receive incoming customer inquiries.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isAvailable ? AppColors.emerald : AppColors.amber,
+                            color: AppColors.textSecondary,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: (isAvailable ? AppColors.emerald : AppColors.amber).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: isAvailable ? AppColors.emerald : AppColors.amber,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                isAvailable ? 'LISTENING ON REAL-TIME RADAR' : 'STATUS: AWAY',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                  color: isAvailable ? AppColors.emerald : AppColors.amber,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -873,6 +950,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     final chatId = broadcast['chatId']?.toString() ?? broadcast['id']?.toString() ?? '';
                     return BroadcastAlertCard(
                       broadcast: broadcast,
+                      margin: const EdgeInsets.only(bottom: 12),
                       onAccept: () {
                         provider.acceptChat(chatId);
                         context.go('/chat/$chatId');
@@ -880,40 +958,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     );
                   }),
 
-                const SizedBox(height: 24),
-
-                // Fleet Roster
-                const Text(
-                  'SHIFT ROSTER',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                if (provider.rosterAgents.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Updating fleet presence...',
-                        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-                      ),
-                    ),
-                  )
-                else
-                  ...provider.rosterAgents
-                      .where((ag) => ag.id != agent?.id)
-                      .map((ag) => _buildRosterCard(ag)),
+                const SizedBox(height: 32),
               ],
             ),
           ),

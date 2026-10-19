@@ -135,6 +135,69 @@ export default function AdminPortal() {
       setAgentChatsList(chats);
     };
 
+    const onAdminChatCreated = ({ chat }) => {
+      setOverviewData((prev) => {
+        const chatId = chat.id || chat.chatId;
+        const exists = prev.chats.some((c) => (c.id || c.chatId) === chatId);
+        if (exists) {
+          return {
+            ...prev,
+            chats: prev.chats.map((c) => ((c.id || c.chatId) === chatId ? { ...c, ...chat } : c))
+          };
+        }
+        return {
+          ...prev,
+          chats: [chat, ...prev.chats]
+        };
+      });
+    };
+
+    const onAdminChatUpdated = (update) => {
+      setOverviewData((prev) => ({
+        ...prev,
+        chats: prev.chats.map((c) => {
+          if ((c.id || c.chatId) === update.chatId) {
+            return { ...c, ...update };
+          }
+          return c;
+        })
+      }));
+      setInspectedChat((prev) => {
+        if (prev && (prev.id || prev.chatId) === update.chatId) {
+          return { ...prev, ...update };
+        }
+        return prev;
+      });
+    };
+
+    const onAdminChatMessage = ({ chatId, message }) => {
+      setOverviewData((prev) => ({
+        ...prev,
+        chats: prev.chats.map((c) => {
+          if ((c.id || c.chatId) === chatId) {
+            const msgs = c.messages || [];
+            if (msgs.some((m) => m.id === message.id)) return c;
+            return {
+              ...c,
+              messages: [...msgs, message]
+            };
+          }
+          return c;
+        })
+      }));
+      setInspectedChat((prev) => {
+        if (prev && (prev.id || prev.chatId) === chatId) {
+          const msgs = prev.messages || [];
+          if (msgs.some((m) => m.id === message.id)) return prev;
+          return {
+            ...prev,
+            messages: [...msgs, message]
+          };
+        }
+        return prev;
+      });
+    };
+
     s.on("connect", onConnect);
     s.on("disconnect", onDisconnect);
     s.on("admin_overview_data", onOverviewData);
@@ -143,6 +206,9 @@ export default function AdminPortal() {
     s.on("admin_action_success", onActionSuccess);
     s.on("admin_action_error", onActionError);
     s.on("admin_agent_chats_data", onAgentChatsData);
+    s.on("admin_chat_created", onAdminChatCreated);
+    s.on("admin_chat_updated", onAdminChatUpdated);
+    s.on("admin_chat_message", onAdminChatMessage);
 
     if (s.connected && adminUser) {
       setIsConnected(true);
@@ -158,6 +224,9 @@ export default function AdminPortal() {
       s.off("admin_action_success", onActionSuccess);
       s.off("admin_action_error", onActionError);
       s.off("admin_agent_chats_data", onAgentChatsData);
+      s.off("admin_chat_created", onAdminChatCreated);
+      s.off("admin_chat_updated", onAdminChatUpdated);
+      s.off("admin_chat_message", onAdminChatMessage);
     };
   }, [adminUser]);
 
@@ -691,8 +760,25 @@ export default function AdminPortal() {
                     / {overviewData.agents.length} fleet
                   </span>
                 </div>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
-                  Ready to receive parallel broadcasts
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span>Ready to receive parallel broadcasts</span>
+                  {typeof overviewData.metrics.onlineAgents === "number" && (
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      color: overviewData.metrics.onlineAgents > 0 ? "#059669" : "var(--text-muted)",
+                      fontWeight: "600"
+                    }}>
+                      <span style={{
+                        width: "6px",
+                        height: "6px",
+                        borderRadius: "50%",
+                        backgroundColor: overviewData.metrics.onlineAgents > 0 ? "#10b981" : "#94a3b8"
+                      }}></span>
+                      {overviewData.metrics.onlineAgents} web active
+                    </span>
+                  )}
                 </span>
               </div>
 

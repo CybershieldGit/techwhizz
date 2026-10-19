@@ -119,7 +119,7 @@ const liveAgents = {};
 const liveChats = {};
 
 function getAvailableAgents() {
-  return Object.values(liveAgents).filter(a => a.status === "available" && a.socketId);
+  return Object.values(liveAgents).filter(a => a.status === "available");
 }
 
 function broadcastAgentList(io) {
@@ -128,13 +128,18 @@ function broadcastAgentList(io) {
 
 function getSystemMetrics() {
   const allChats = Object.values(liveChats);
+  const activeAgents = Object.values(liveAgents).filter(a => a.status !== "terminated");
+  const available = activeAgents.filter(a => a.status === "available");
+  const onlineCount = activeAgents.filter(a => a.socketId).length;
+
   return {
     waitingChats: allChats.filter(c => c.status === "waiting").length,
     activeChats: allChats.filter(c => c.status === "active").length,
     resolvedChats: allChats.filter(c => c.status === "resolved").length,
-    totalAgents: Object.keys(liveAgents).length,
-    availableAgents: getAvailableAgents().length,
-    busyAgents: Object.values(liveAgents).filter(a => a.status === "in_chat" || a.status === "busy").length
+    totalAgents: activeAgents.length,
+    availableAgents: available.length,
+    onlineAgents: onlineCount,
+    busyAgents: activeAgents.filter(a => a.status === "in_chat" || a.status === "busy").length
   };
 }
 
@@ -443,7 +448,9 @@ app.prepare().then(async () => {
       });
       // Also broadcast to agents_room room to ensure all active agent sockets receive the ticket
       io.to("agents_room").emit("incoming_chat_broadcast", newChat);
-      console.log(`> [Socket] Broadcasted new customer inquiry ${chatId} to ${freeAgents.length} free agents and agents_room`);
+      // Stream in real-time to BPO Operations & Admin Suite
+      io.to("admin_room").emit("admin_chat_created", { chat: newChat });
+      console.log(`> [Socket] Broadcasted new customer inquiry ${chatId} to ${freeAgents.length} free agents, agents_room, and admin_room`);
 
       // ── Push Notification via FCM to all registered mobile agents ──
       try {
@@ -561,6 +568,15 @@ app.prepare().then(async () => {
         claimedById: agent.id
       });
 
+      // Stream status update to BPO Operations & Admin Suite
+      io.to("admin_room").emit("admin_chat_updated", {
+        chatId,
+        status: "active",
+        assignedAgent: chat.assignedAgent,
+        acceptedAt: chat.acceptedAt,
+        messages: chat.messages
+      });
+
       broadcastAgentList(io);
       broadcastMetrics(io);
     });
@@ -608,6 +624,7 @@ app.prepare().then(async () => {
       }
 
       io.to(`chat_${chatId}`).emit("new_message", { chatId, message });
+      io.to("admin_room").emit("admin_chat_message", { chatId, message });
 
       // ── Push Notification via FCM to assigned agent or queue if customer sent message ──
       if (sender === "customer") {
@@ -743,6 +760,14 @@ app.prepare().then(async () => {
       }
 
       io.to(`chat_${chatId}`).emit("chat_ended", { chat });
+      io.to("admin_room").emit("admin_chat_updated", {
+        chatId,
+        status: "resolved",
+        resolvedAt: chat.resolvedAt,
+        summary: chat.summary,
+        rating: chat.rating,
+        messages: chat.messages
+      });
       broadcastAgentList(io);
       broadcastMetrics(io);
     });
@@ -764,6 +789,10 @@ app.prepare().then(async () => {
           claimedBy: "Cancelled by Customer"
         });
         socket.emit("chat_cancelled", { chatId });
+        io.to("admin_room").emit("admin_chat_updated", {
+          chatId,
+          status: "cancelled"
+        });
         broadcastMetrics(io);
       }
     });
@@ -772,6 +801,7 @@ app.prepare().then(async () => {
     // ADMIN OPERATIONS & AUDIT LOGS (MONGODB BACKED)
     // ------------------------------------
     socket.on("admin_get_overview", async () => {
+      socket.join("admin_room");
       try {
         const dbChats = await Chat.find().sort({ createdAt: -1 }).limit(100);
         const dbAgents = await User.find({ role: "agent" });
@@ -1194,6 +1224,12 @@ app.prepare().then(async () => {
           io.to(`agent_${chat.assignedAgent.id}`).emit("customer_presence_update", presencePayload);
         }
 
+        io.to("admin_room").emit("admin_chat_updated", {
+          chatId: chat.id,
+          customerConnected: true,
+          customerDisconnectedAt: null
+        });
+
         Chat.updateOne(
           { chatId: chat.id },
           { customerConnected: true, customerDisconnectedAt: null }
@@ -1209,9 +1245,9 @@ app.prepare().then(async () => {
       for (const agentId in liveAgents) {
         if (liveAgents[agentId].socketId === socket.id) {
           liveAgents[agentId].socketId = null;
-          if (liveAgents[agentId].status !== "in_chat") {
-            liveAgents[agentId].status = "offline";
-          }
+          // Note: Do not overwrite fleet availability status to "offline".
+          // Agents remain registered & available in fleet to receive mobile push notifications
+          // unless they explicitly toggled their status or were terminated.
           broadcastAgentList(io);
           broadcastMetrics(io);
           break;
@@ -1240,6 +1276,12 @@ app.prepare().then(async () => {
           if (chat.assignedAgent?.id) {
             io.to(`agent_${chat.assignedAgent.id}`).emit("customer_presence_update", presencePayload);
           }
+
+          io.to("admin_room").emit("admin_chat_updated", {
+            chatId: chat.id,
+            customerConnected: false,
+            customerDisconnectedAt: chat.customerDisconnectedAt
+          });
 
           Chat.updateOne(
             { chatId: chat.id },

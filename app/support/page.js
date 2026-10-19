@@ -3,10 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import AgentWorkspace from "@/components/AgentWorkspace";
-import SupervisorDashboard from "@/components/SupervisorDashboard";
 import { getSocket } from "@/lib/socket";
 import { 
-  Headphones, BarChart3, MessageSquare, ArrowLeft, 
+  Headphones, MessageSquare, ArrowLeft, 
   ShieldCheck, Users, Activity, Sparkles, Lock, ArrowRight, LogOut 
 } from "lucide-react";
 
@@ -14,7 +13,6 @@ export default function SupportPortal() {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [agentsList, setAgentsList] = useState([]);
-  const [activeTab, setActiveTab] = useState("workspace"); // "workspace" | "supervisor"
   const [metrics, setMetrics] = useState({
     waitingChats: 0,
     activeChats: 0,
@@ -318,57 +316,26 @@ export default function SupportPortal() {
             </div>
           </div>
 
-          {/* 2. Center: Console Tabs (Agent Desk vs Fleet Supervisor) */}
-          <div className="support-tabs-group">
-            <button
-              onClick={() => setActiveTab("workspace")}
+          {/* 2. Center: Dedicated Console Title */}
+          <div className="support-tabs-group" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: "7px",
-                padding: "8px 16px",
+                padding: "7px 14px",
                 borderRadius: "8px",
                 fontSize: "13px",
-                fontWeight: activeTab === "workspace" ? "700" : "500",
-                backgroundColor: activeTab === "workspace" ? "#ffffff" : "transparent",
-                color: activeTab === "workspace" ? "var(--accent-blue)" : "var(--text-secondary)",
-                boxShadow: activeTab === "workspace" ? "var(--shadow-sm)" : "none"
+                fontWeight: "700",
+                backgroundColor: "#ffffff",
+                color: "var(--accent-blue)",
+                boxShadow: "var(--shadow-sm)",
+                border: "1px solid var(--border-color)"
               }}
             >
               <Headphones size={15} />
-              <span>Agent Desk</span>
-              {metrics?.waitingChats > 0 && (
-                <span style={{
-                  backgroundColor: "var(--accent-rose)",
-                  color: "#fff",
-                  fontSize: "10px",
-                  fontWeight: "700",
-                  padding: "1px 6px",
-                  borderRadius: "10px"
-                }}>
-                  {metrics.waitingChats}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab("supervisor")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "7px",
-                padding: "8px 16px",
-                borderRadius: "8px",
-                fontSize: "13px",
-                fontWeight: activeTab === "supervisor" ? "700" : "500",
-                backgroundColor: activeTab === "supervisor" ? "#ffffff" : "transparent",
-                color: activeTab === "supervisor" ? "var(--accent-blue)" : "var(--text-secondary)",
-                boxShadow: activeTab === "supervisor" ? "var(--shadow-sm)" : "none"
-              }}
-            >
-              <BarChart3 size={15} />
-              <span>Fleet Supervisor</span>
-            </button>
+              <span>Agent Desk Console</span>
+            </div>
           </div>
 
           {/* 3. Right: Desktop Agent Profile & Logout */}
@@ -428,11 +395,7 @@ export default function SupportPortal() {
 
       {/* Main Support Area */}
       <main style={{ flex: 1, padding: "20px 0 40px 0" }}>
-        {activeTab === "workspace" ? (
-          <AgentWorkspace socket={socket} agentsList={agentsList} authenticatedAgent={agentSession} />
-        ) : (
-          <SupervisorDashboard agentsList={agentsList} metrics={metrics} />
-        )}
+        <AgentWorkspace socket={socket} agentsList={agentsList} authenticatedAgent={agentSession} metrics={metrics} />
       </main>
 
       {/* Footer */}
