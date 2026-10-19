@@ -182,6 +182,7 @@ class AgentProvider extends ChangeNotifier {
     SocketService.off(AppConstants.evtCannedResponsesUpdate);
     SocketService.off(AppConstants.evtAgentHistoryData);
     SocketService.off(AppConstants.evtCustomerPresenceUpdate);
+    SocketService.off(AppConstants.evtAgentPersonalStats);
 
     // 1. Agent Registered confirmation
     SocketService.on(AppConstants.evtAgentRegistered, (data) {
@@ -344,6 +345,40 @@ class AgentProvider extends ChangeNotifier {
         _rosterAgents = data
             .map((item) => AgentModel.fromJson(Map<String, dynamic>.from(item)))
             .toList();
+        if (_currentAgent != null) {
+          final found = _rosterAgents.firstWhere(
+            (a) => a.id == _currentAgent!.id,
+            orElse: () => _currentAgent!,
+          );
+          _currentAgent = found;
+        }
+        notifyListeners();
+      }
+    });
+
+    // 10b. Personal agent stats update (real-time resolutions & rating)
+    SocketService.on(AppConstants.evtAgentPersonalStats, (data) {
+      if (data is Map && _currentAgent != null) {
+        final mapData = Map<String, dynamic>.from(data);
+        final newStats = Map<String, dynamic>.from(_currentAgent!.stats ?? {});
+        if (mapData['resolvedToday'] != null) {
+          newStats['resolvedToday'] = mapData['resolvedToday'];
+        }
+        if (mapData['avgRating'] != null) {
+          newStats['avgRating'] = mapData['avgRating'];
+        }
+        _currentAgent = AgentModel(
+          id: _currentAgent!.id,
+          name: _currentAgent!.name,
+          email: _currentAgent!.email,
+          role: _currentAgent!.role,
+          department: _currentAgent!.department,
+          avatar: _currentAgent!.avatar,
+          status: _currentAgent!.status,
+          stats: newStats,
+          activeChatId: _currentAgent!.activeChatId,
+          terminationReason: _currentAgent!.terminationReason,
+        );
         notifyListeners();
       }
     });

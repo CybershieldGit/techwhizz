@@ -122,7 +122,35 @@ function getAvailableAgents() {
   return Object.values(liveAgents).filter(a => a.status === "available");
 }
 
+function isToday(dateStringOrObj) {
+  if (!dateStringOrObj) return false;
+  const d = new Date(dateStringOrObj);
+  if (isNaN(d.getTime())) return false;
+  const now = new Date();
+  return (
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear()
+  );
+}
+
+function getAgentResolvedToday(agentId, agentEmail) {
+  if (!agentId && !agentEmail) return 0;
+  return Object.values(liveChats).filter(c =>
+    c.status === "resolved" &&
+    isToday(c.resolvedAt || c.updatedAt || c.createdAt) &&
+    (
+      (agentId && (c.assignedAgent?.id === agentId || c.assignedAgent?._id === agentId)) ||
+      (agentEmail && (c.assignedAgent?.email === agentEmail || c.assignedAgent?.id === agentEmail))
+    )
+  ).length;
+}
+
 function broadcastAgentList(io) {
+  Object.values(liveAgents).forEach(ag => {
+    ag.stats = ag.stats || {};
+    ag.stats.resolvedToday = getAgentResolvedToday(ag.id, ag.email);
+  });
   io.emit("agents_update", Object.values(liveAgents));
 }
 
@@ -132,10 +160,14 @@ function getSystemMetrics() {
   const available = activeAgents.filter(a => a.status === "available");
   const onlineCount = activeAgents.filter(a => a.socketId).length;
 
+  const resolvedTotal = allChats.filter(c => c.status === "resolved").length;
+  const resolvedToday = allChats.filter(c => c.status === "resolved" && isToday(c.resolvedAt || c.updatedAt || c.createdAt)).length;
+
   return {
     waitingChats: allChats.filter(c => c.status === "waiting").length,
     activeChats: allChats.filter(c => c.status === "active").length,
-    resolvedChats: allChats.filter(c => c.status === "resolved").length,
+    resolvedChats: resolvedTotal,
+    resolvedToday: resolvedToday,
     totalAgents: activeAgents.length,
     availableAgents: available.length,
     onlineAgents: onlineCount,
@@ -296,6 +328,8 @@ app.prepare().then(async () => {
         }
         socket.join("agents_room");
         socket.join(`agent_${agent.id}`);
+        agent.stats = agent.stats || {};
+        agent.stats.resolvedToday = getAgentResolvedToday(agent.id, agent.email);
         socket.emit("agent_registered", { agent });
         broadcastAgentList(io);
         broadcastMetrics(io);
@@ -723,7 +757,8 @@ app.prepare().then(async () => {
         const ag = liveAgents[chat.assignedAgent.id];
         ag.status = "available";
         ag.activeChatId = null;
-        ag.stats.resolvedToday += 1;
+        ag.stats = ag.stats || {};
+        ag.stats.resolvedToday = getAgentResolvedToday(ag.id, ag.email);
         if (rating) {
           ag.stats.avgRating = Number(((ag.stats.avgRating * 9 + rating) / 10).toFixed(1));
         }
@@ -734,11 +769,23 @@ app.prepare().then(async () => {
             {
               status: "available",
               activeChatId: null,
-              $inc: { "stats.resolvedToday": 1 }
+              "stats.resolvedToday": ag.stats.resolvedToday
             }
           );
         } catch (e) {
           console.error("DB agent update error:", e.message);
+        }
+
+        // Notify agent of personal stats in real time
+        io.to(`agent_${ag.id}`).emit("agent_personal_stats", {
+          resolvedToday: ag.stats.resolvedToday,
+          avgRating: ag.stats.avgRating
+        });
+        if (ag.socketId) {
+          io.to(ag.socketId).emit("agent_personal_stats", {
+            resolvedToday: ag.stats.resolvedToday,
+            avgRating: ag.stats.avgRating
+          });
         }
       }
 

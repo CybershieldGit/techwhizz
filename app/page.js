@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import CustomerChat from "@/components/CustomerChat";
 import { getSocket } from "@/lib/socket";
-import { Headphones, MessageSquare, Shield, Sparkles } from "lucide-react";
 
 export default function CustomerHome() {
   const [socket, setSocket] = useState(null);
@@ -53,21 +51,22 @@ export default function CustomerHome() {
               width: "36px",
               height: "36px",
               borderRadius: "10px",
-              background: "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
+              backgroundColor: "#ffffff",
+              border: "1px solid #e2e8f0",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+              boxShadow: "0 2px 8px rgba(27, 59, 139, 0.12)",
               flexShrink: 0
             }}>
-              <MessageSquare size={18} color="#ffffff" />
+              <img src="/favicon-32x32.png" alt="OmniFlow Logo" style={{ width: "22px", height: "22px", objectFit: "contain" }} />
             </div>
             <div style={{ minWidth: 0 }}>
               <h1 style={{ fontSize: "15px", fontWeight: "800", color: "var(--text-primary)", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                Live Support
+                OmniFlow Support
               </h1>
               <p style={{ fontSize: "11px", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                1-on-1 Assistance Desk
+                Enterprise Real-Time Desk
               </p>
             </div>
           </div>
@@ -101,63 +100,21 @@ export default function CustomerHome() {
 
       {/* DISCRETE FOOTER */}
       <footer style={{
-        padding: "14px 16px",
+        padding: "16px 20px",
         textAlign: "center",
-        fontSize: "11px",
+        fontSize: "12px",
         color: "var(--text-muted)",
         borderTop: "1px solid var(--border-color)",
         backgroundColor: "rgba(255, 255, 255, 0.8)",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
-        flexWrap: "wrap",
-        gap: "10px",
+        justifyContent: "center",
         maxWidth: "880px",
         margin: "0 auto",
         width: "100%",
         boxSizing: "border-box"
       }}>
-        <span>© Support Services • Secure Live Messaging</span>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-          <Link
-            href="/support"
-            style={{
-              color: "var(--accent-blue)",
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              fontSize: "11px",
-              fontWeight: "600",
-              padding: "4px 8px",
-              borderRadius: "6px",
-              backgroundColor: "rgba(37, 99, 235, 0.08)",
-              border: "1px solid rgba(37, 99, 235, 0.15)"
-            }}
-          >
-            <Headphones size={12} />
-            Support Desk
-          </Link>
-          <Link
-            href="/admin"
-            style={{
-              color: "#7c3aed",
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              fontSize: "11px",
-              fontWeight: "600",
-              padding: "4px 8px",
-              borderRadius: "6px",
-              backgroundColor: "#f5f3ff",
-              border: "1px solid #ddd6fe"
-            }}
-          >
-            <Shield size={12} />
-            Admin
-          </Link>
-        </div>
+        <span>© OmniFlow Support Services • Secure Live Messaging Desk</span>
       </footer>
 
     </div>

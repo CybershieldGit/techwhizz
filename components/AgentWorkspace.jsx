@@ -59,6 +59,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent,
   // Desktop Push Notifications & Audio state
   const [notificationPermission, setNotificationPermission] = useState("default");
   const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [cannedResponses, setCannedResponses] = useState([]);
 
   // Live real-time timer ticker (updates every second for elapsed queue waiting time)
   const [now, setNow] = useState(Date.now());
@@ -365,7 +366,28 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent,
       setMetrics(updatedMetrics);
     };
 
+    const handlePersonalStats = ({ resolvedToday, avgRating }) => {
+      setCurrentAgent((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          stats: {
+            ...prev.stats,
+            resolvedToday,
+            avgRating: avgRating ?? prev.stats?.avgRating
+          }
+        };
+      });
+    };
+
+    const handleCannedResponses = (macros) => {
+      if (Array.isArray(macros)) {
+        setCannedResponses(macros);
+      }
+    };
+
     socket.on("agent_registered", handleAgentRegistered);
+    socket.on("agent_personal_stats", handlePersonalStats);
     socket.on("incoming_chat_broadcast", handleIncomingBroadcast);
     socket.on("chat_claimed_by_other", handleChatClaimedByOther);
     socket.on("chat_accept_success", handleChatAcceptSuccess);
@@ -376,9 +398,13 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent,
     socket.on("chat_notes_updated", handleNotesUpdated);
     socket.on("customer_presence_update", handleCustomerPresenceUpdate);
     socket.on("metrics_update", handleMetricsUpdate);
+    socket.on("canned_responses_update", handleCannedResponses);
+
+    socket.emit("get_canned_macros");
 
     return () => {
       socket.off("agent_registered", handleAgentRegistered);
+      socket.off("agent_personal_stats", handlePersonalStats);
       socket.off("incoming_chat_broadcast", handleIncomingBroadcast);
       socket.off("chat_claimed_by_other", handleChatClaimedByOther);
       socket.off("chat_accept_success", handleChatAcceptSuccess);
@@ -389,6 +415,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent,
       socket.off("chat_notes_updated", handleNotesUpdated);
       socket.off("customer_presence_update", handleCustomerPresenceUpdate);
       socket.off("metrics_update", handleMetricsUpdate);
+      socket.off("canned_responses_update", handleCannedResponses);
     };
   }, [socket, selectedAgentId]);
 
@@ -495,6 +522,16 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent,
       chatId: activeChat.id,
       resolvedBy: currentAgent.name,
       summary: resolutionSummary || "Issue solved successfully."
+    });
+    setCurrentAgent((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        stats: {
+          ...prev.stats,
+          resolvedToday: (prev.stats?.resolvedToday || 0) + 1
+        }
+      };
     });
     setShowResolveModal(false);
   };
@@ -735,7 +772,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent,
               Resolved Today
             </div>
             <div style={{ fontSize: "28px", fontWeight: "900", color: "#059669", lineHeight: 1 }}>
-              {metrics?.resolvedChats ?? currentAgent?.resolvedToday ?? 0}
+              {typeof currentAgent?.stats?.resolvedToday === "number" ? currentAgent.stats.resolvedToday : 0}
             </div>
           </div>
           <div style={{
@@ -1081,7 +1118,7 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent,
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Canned Macros Bar */}
+            {/* Dynamic Canned Macros Bar (Synchronized with MongoDB Atlas) */}
             <div className="canned-macros-bar" style={{
               padding: "10px 16px",
               backgroundColor: "#ffffff",
@@ -1092,34 +1129,43 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent,
               whiteSpace: "nowrap"
             }}>
               <span style={{ fontSize: "11px", color: "var(--text-muted)", alignSelf: "center", flexShrink: 0, fontWeight: "600" }}>Canned:</span>
-              <button
-                type="button"
-                onClick={() => insertCannedResponse(`Hello ${activeChat.customer.name}! Thank you for contacting our support team. How may I assist you with this issue?`)}
-                style={{ fontSize: "12px", padding: "5px 12px", borderRadius: "6px", backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", fontWeight: "600" }}
-              >
-                👋 Greeting
-              </button>
-              <button
-                type="button"
-                onClick={() => insertCannedResponse("I have reviewed your query details and am checking the backend records right now. Please allow me 2 minutes.")}
-                style={{ fontSize: "12px", padding: "5px 12px", borderRadius: "6px", backgroundColor: "#fefce8", color: "#a16207", border: "1px solid #fef08a", fontWeight: "600" }}
-              >
-                ⏳ Checking Logs
-              </button>
-              <button
-                type="button"
-                onClick={() => insertCannedResponse("I have applied the fix to your account. Could you please refresh your page and confirm if it works as expected?")}
-                style={{ fontSize: "12px", padding: "5px 12px", borderRadius: "6px", backgroundColor: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", fontWeight: "600" }}
-              >
-                ✅ Fix Applied
-              </button>
-              <button
-                type="button"
-                onClick={() => insertCannedResponse("Is there anything else I can assist you with before we wrap up today?")}
-                style={{ fontSize: "12px", padding: "5px 12px", borderRadius: "6px", backgroundColor: "#faf5ff", color: "#7e22ce", border: "1px solid #e9d5ff", fontWeight: "600" }}
-              >
-                ❓ Anything Else?
-              </button>
+              {(cannedResponses.length > 0 ? cannedResponses : [
+                { id: "def_1", title: "Greeting", text: "Hello! Thank you for contacting our support team. How may I assist you with this issue today?" },
+                { id: "def_2", title: "Checking Logs", text: "I have reviewed your query details and am checking the backend records right now. Please allow me 2 minutes." },
+                { id: "def_3", title: "Fix Applied", text: "I have applied the fix to your account. Could you please refresh your page and confirm if it works as expected?" },
+                { id: "def_4", title: "Anything Else?", text: "Is there anything else I can assist you with before we wrap up today?" }
+              ]).map((macro) => {
+                let processedText = macro.text || "";
+                if (activeChat?.customer?.name) {
+                  processedText = processedText
+                    .replace(/\{customer_name\}/gi, activeChat.customer.name)
+                    .replace(/\{name\}/gi, activeChat.customer.name)
+                    .replace(/\{customer\}/gi, activeChat.customer.name);
+                }
+                return (
+                  <button
+                    key={macro.id || macro.title}
+                    type="button"
+                    onClick={() => insertCannedResponse(processedText)}
+                    style={{
+                      fontSize: "12px",
+                      padding: "5px 12px",
+                      borderRadius: "6px",
+                      backgroundColor: "#f8fafc",
+                      color: "#1e293b",
+                      border: "1px solid #cbd5e1",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      flexShrink: 0
+                    }}
+                  >
+                    <span>⚡ {macro.title}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Input Bar */}
@@ -1297,6 +1343,59 @@ export default function AgentWorkspace({ socket, agentsList, authenticatedAgent,
 
           </div>
 
+        </div>
+      ) : incomingBroadcasts.length === 0 ? (
+        <div
+          className="glass-panel"
+          style={{
+            padding: "48px 24px",
+            textAlign: "center",
+            backgroundColor: "#ffffff",
+            borderRadius: "16px",
+            border: "1px dashed var(--border-color)",
+            boxShadow: "var(--shadow-sm)"
+          }}
+        >
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "50%",
+              backgroundColor: currentAgent?.status === "available" ? "#ecfdf5" : "#fffbeb",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px auto",
+              color: currentAgent?.status === "available" ? "#059669" : "#d97706"
+            }}
+          >
+            <Headphones size={28} />
+          </div>
+
+          <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", marginBottom: "6px" }}>
+            {currentAgent?.status === "available" ? "Queue is Clear" : "Dispatches Paused"}
+          </h3>
+
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)", maxWidth: "480px", margin: "0 auto 16px auto", lineHeight: "1.5" }}>
+            {currentAgent?.status === "available"
+              ? "Standing by for incoming customer inquiries. Parallel broadcast listeners and desktop sound alerts are armed."
+              : "Your status is currently paused. Switch your status to Free (Ready) above to receive incoming customer inquiries."}
+          </p>
+
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 14px", borderRadius: "20px", backgroundColor: currentAgent?.status === "available" ? "#ecfdf5" : "#fffbeb", border: `1px solid ${currentAgent?.status === "available" ? "#a7f3d0" : "#fde68a"}` }}>
+            <span
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                backgroundColor: currentAgent?.status === "available" ? "#10b981" : "#f59e0b",
+                boxShadow: currentAgent?.status === "available" ? "0 0 8px #10b981" : "none"
+              }}
+            />
+            <span style={{ fontSize: "11px", fontWeight: "800", letterSpacing: "0.05em", color: currentAgent?.status === "available" ? "#059669" : "#b45309" }}>
+              {currentAgent?.status === "available" ? "LISTENING ON REAL-TIME RADAR" : `STATUS: ${currentAgent?.status?.toUpperCase() || "AWAY"}`}
+            </span>
+          </div>
         </div>
       ) : null}
 

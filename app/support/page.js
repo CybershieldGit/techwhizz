@@ -17,7 +17,7 @@ export default function SupportPortal() {
     waitingChats: 0,
     activeChats: 0,
     resolvedChats: 0,
-    totalAgents: 4,
+    totalAgents: 0,
     availableAgents: 0,
     busyAgents: 0
   });

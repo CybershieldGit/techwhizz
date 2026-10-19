@@ -30,7 +30,7 @@ export default function AdminPortal() {
     chats: [],
     agents: [],
     cannedResponses: [],
-    metrics: { waitingChats: 0, activeChats: 0, resolvedChats: 0, totalAgents: 4, availableAgents: 0, busyAgents: 0 }
+    metrics: { waitingChats: 0, activeChats: 0, resolvedChats: 0, totalAgents: 0, availableAgents: 0, busyAgents: 0 }
   });
 
   // Fleet View Filters

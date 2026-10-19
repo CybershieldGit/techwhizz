@@ -8,7 +8,9 @@ const nextConfig = {
     "192.168.1.46:3001",
     "localhost:3001",
     "flammable-thank-jurist.ngrok-free.dev",
-    "*.ngrok-free.dev"
+    "*.ngrok-free.dev",
+    "techwhizz.onrender.com",
+    "*.onrender.com"
   ],
 };
 

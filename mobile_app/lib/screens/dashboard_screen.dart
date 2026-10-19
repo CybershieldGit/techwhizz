@@ -767,9 +767,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 8),
                     _buildMetricCard(
                       label: 'Resolved Today',
-                      value: provider.metrics['resolvedToday']?.toString() ??
-                          agent?.resolvedToday.toString() ??
-                          '0',
+                      value: (agent?.resolvedToday ?? 0).toString(),
                       icon: Icons.check_circle_outline_rounded,
                       color: AppColors.emerald,
                       bgTint: const Color(0xFFECFDF5),
